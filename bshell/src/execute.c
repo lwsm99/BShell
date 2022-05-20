@@ -108,9 +108,53 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
         /*
          * handle redirections here
          */
-        if (cmd_s->redirections != NULL){
-            printf("Handling of redirection is still missing ... implement it!\n");
-            exit(0);
+        if (cmd_s->redirections != NULL) {
+            List * rdList = cmd_s->redirections;
+            while(rdList != NULL) {
+                Redirection * redirection = rdList->head;
+                int fd;
+
+                if(redirection->r_mode == M_WRITE || redirection->r_mode == M_APPEND) {
+                    if(redirection->r_type == R_FILE) {
+                        if(redirection->r_mode == M_WRITE) {
+                            if((fd = open(redirection->u.r_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IXUSR)) == -1) {
+                                fprintf(stderr, "-bshell: Fehler beim öffnen der Datei: %s \n", redirection->u.r_file);
+                                perror("");
+                                exit(EXIT_FAILURE);
+                            }
+                        }
+                        else {
+                            if((fd = open(redirection->u.r_file, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR | S_IXUSR)) == -1) {
+                                fprintf(stderr, "-bshell: Fehler beim öffnen der Datei: %s \n", redirection->u.r_file);
+                                perror("");
+                                exit(EXIT_FAILURE);
+                            }
+                        }
+                        dup2(fd, STDOUT_FILENO);
+                    }
+                    else {
+                        dup2(redirection->u.r_fd, STDOUT_FILENO);
+                    }
+                }
+
+                if(redirection->r_mode == M_READ) {
+                    
+                    if(redirection->r_type == R_FILE) {
+                        if ((fd = open(redirection->u.r_file, O_RDWR, S_IRUSR | S_IWUSR | S_IXUSR)) == -1) {
+                            fprintf(stderr, "-bshell: Fehler beim öffnen der Datei: %s \n", redirection->u.r_file);
+                            perror("");
+                            exit(EXIT_FAILURE);
+                        }
+                        dup2(fd, STDIN_FILENO);
+                    }
+                    else {
+                        dup2(redirection->u.r_fd, STDIN_FILENO);
+                    }
+                }
+
+                //fclose(redirection->u.r_file);
+                rdList = rdList->tail;
+            }
         }
         if (execvp(command[0], command) == -1){
             fprintf(stderr, "-bshell: %s : command not found \n", command[0]);
