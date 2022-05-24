@@ -105,9 +105,7 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
         /* child */
         signal(SIGINT, SIG_DFL);
         signal(SIGTTOU, SIG_DFL);
-        /*
-         * handle redirections here
-         */
+        /* REDIRECTIONS */
         if (cmd_s->redirections != NULL) {
             List * rdList = cmd_s->redirections;
             while(rdList != NULL) {
@@ -175,6 +173,9 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
             /**
              * the handling here is far more complicated than this!
              * vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+             * 
+             * Hier werden Exitcodes empfangen (z.B. WIFEXITED etc.) -> Referenz in Vorlesung!
+             * Diese brauchen wir für || und &&
              */
 
             wpid= waitpid(pid, NULL, 0);
@@ -196,6 +197,7 @@ static int do_execute_simple(SimpleCommand *cmd_s, int background){
     }
     if (strcmp(cmd_s->command_tokens[0],"exit")==0){
         exit(0);
+    /* HIER WIRD CD IMPLEMENTIERT */
 
 /* do not modify this */
 #ifndef NOLIBREADLINE
