@@ -195,9 +195,26 @@ static int do_execute_simple(SimpleCommand *cmd_s, int background){
     if (cmd_s==NULL){
         return 0;
     }
-    if (strcmp(cmd_s->command_tokens[0],"exit")==0){
+    if (strcmp(cmd_s->command_tokens[0],"exit")==0) {
         exit(0);
-    /* HIER WIRD CD IMPLEMENTIERT */
+    } else if (strcmp(cmd_s->command_tokens[0],"cd")==0) {
+
+        if(cmd_s->command_token_counter == 1) {
+            chdir(getenv("HOME"));
+            return 0;
+        }
+        else {
+            // TODO: Fix "cd: <path>:"
+            if(chdir(cmd_s->command_tokens[1]) == -1) {
+                fprintf(stderr, "%s: ", cmd_s->command_tokens[1]);
+                perror("");
+                return(1);
+            }
+            chdir(cmd_s->command_tokens[1]);
+            return 0;
+        }
+
+        
 
 /* do not modify this */
 #ifndef NOLIBREADLINE
