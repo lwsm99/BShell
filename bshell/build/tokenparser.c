@@ -98,7 +98,7 @@ char ** str_buffer;
 Command *cmd;
 
 
-#line 102 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:337  */
+#line 102 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:337  */
 # ifndef YY_NULLPTR
 #  if defined __cplusplus
 #   if 201103L <= __cplusplus
@@ -121,8 +121,8 @@ Command *cmd;
 
 /* In a future release of Bison, this section will be replaced
    by #include "tokenparser.h".  */
-#ifndef YY_YY_HOME_STUDENT_DESKTOP_BS_HU_BSHELL_BUILD_TOKENPARSER_H_INCLUDED
-# define YY_YY_HOME_STUDENT_DESKTOP_BS_HU_BSHELL_BUILD_TOKENPARSER_H_INCLUDED
+#ifndef YY_YY_HOME_STUDENT_DESKTOP_BS_HU_BSHELL_BSHELL_BUILD_TOKENPARSER_H_INCLUDED
+# define YY_YY_HOME_STUDENT_DESKTOP_BS_HU_BSHELL_BSHELL_BUILD_TOKENPARSER_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -162,7 +162,7 @@ union YYSTYPE
     Redirection *redirection;
     List *list;
 
-#line 166 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:352  */
+#line 166 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:352  */
 };
 
 typedef union YYSTYPE YYSTYPE;
@@ -175,7 +175,7 @@ extern YYSTYPE yylval;
 
 int yyparse (void);
 
-#endif /* !YY_YY_HOME_STUDENT_DESKTOP_BS_HU_BSHELL_BUILD_TOKENPARSER_H_INCLUDED  */
+#endif /* !YY_YY_HOME_STUDENT_DESKTOP_BS_HU_BSHELL_BSHELL_BUILD_TOKENPARSER_H_INCLUDED  */
 
 
 
@@ -1270,115 +1270,115 @@ yyreduce:
         case 2:
 #line 62 "src/tokenparser.y" /* yacc.c:1652  */
     {ret=0;}
-#line 1274 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1274 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 3:
 #line 62 "src/tokenparser.y" /* yacc.c:1652  */
     {cmd = (yyvsp[-1].cmd); return ret;}
-#line 1280 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1280 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 4:
 #line 64 "src/tokenparser.y" /* yacc.c:1652  */
     {cmd=command_new_empty(); return ret;}
-#line 1286 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1286 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 5:
 #line 65 "src/tokenparser.y" /* yacc.c:1652  */
     { fprintf(stdout, "\n"); exit(1);}
-#line 1292 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1292 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 6:
 #line 68 "src/tokenparser.y" /* yacc.c:1652  */
     {(yyval.cmd)=command_new(C_SIMPLE, (yyvsp[0].simple_cmd), NULL);}
-#line 1298 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1298 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 7:
 #line 69 "src/tokenparser.y" /* yacc.c:1652  */
     {(yyval.cmd)=(yyvsp[0].cmd);}
-#line 1304 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1304 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 8:
 #line 70 "src/tokenparser.y" /* yacc.c:1652  */
     {(yyval.cmd)=(yyvsp[0].cmd);}
-#line 1310 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1310 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 9:
 #line 71 "src/tokenparser.y" /* yacc.c:1652  */
     {(yyval.cmd)=(yyvsp[0].cmd);}
-#line 1316 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1316 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 10:
 #line 72 "src/tokenparser.y" /* yacc.c:1652  */
     {(yyval.cmd)=(yyvsp[0].cmd);}
-#line 1322 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1322 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 11:
 #line 75 "src/tokenparser.y" /* yacc.c:1652  */
     {(yyval.cmd)= command_new(C_SEQUENCE, (yyvsp[-2].simple_cmd), (yyvsp[0].simple_cmd));}
-#line 1328 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1328 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 12:
 #line 76 "src/tokenparser.y" /* yacc.c:1652  */
     {(yyval.cmd)= command_append(C_SEQUENCE, (yyvsp[-2].simple_cmd), (yyvsp[0].cmd));}
-#line 1334 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1334 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 13:
 #line 78 "src/tokenparser.y" /* yacc.c:1652  */
     {(yyval.cmd)= command_new(C_PIPE, (yyvsp[-2].simple_cmd), (yyvsp[0].simple_cmd));}
-#line 1340 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1340 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 14:
 #line 79 "src/tokenparser.y" /* yacc.c:1652  */
     {(yyval.cmd)= command_append(C_PIPE, (yyvsp[-2].simple_cmd), (yyvsp[0].cmd));}
-#line 1346 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1346 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 15:
 #line 81 "src/tokenparser.y" /* yacc.c:1652  */
     {(yyval.cmd)= command_new(C_AND, (yyvsp[-2].simple_cmd), (yyvsp[0].simple_cmd));}
-#line 1352 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1352 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 16:
 #line 82 "src/tokenparser.y" /* yacc.c:1652  */
     {(yyval.cmd)= command_append(C_AND, (yyvsp[-2].simple_cmd), (yyvsp[0].cmd));}
-#line 1358 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1358 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 17:
 #line 84 "src/tokenparser.y" /* yacc.c:1652  */
     {(yyval.cmd)= command_new(C_OR, (yyvsp[-2].simple_cmd), (yyvsp[0].simple_cmd));}
-#line 1364 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1364 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 18:
 #line 85 "src/tokenparser.y" /* yacc.c:1652  */
     {(yyval.cmd)= command_append(C_OR, (yyvsp[-2].simple_cmd), (yyvsp[0].cmd));}
-#line 1370 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1370 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 19:
 #line 88 "src/tokenparser.y" /* yacc.c:1652  */
     {(yyval.list)=NULL;}
-#line 1376 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1376 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 20:
 #line 89 "src/tokenparser.y" /* yacc.c:1652  */
     { (yyval.list)=list_append((yyvsp[-1].redirection), (yyvsp[0].list));}
-#line 1382 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1382 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 21:
@@ -1392,7 +1392,7 @@ yyreduce:
                         free((yyvsp[0].tokseq).str);
 
            }
-#line 1396 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1396 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 22:
@@ -1405,7 +1405,7 @@ yyreduce:
                         /* no longer nedded */
                         free((yyvsp[0].tokseq).str);
            }
-#line 1409 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1409 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 23:
@@ -1418,7 +1418,7 @@ yyreduce:
                         /* no longer nedded */
                         free((yyvsp[0].tokseq).str);
            }
-#line 1422 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1422 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 24:
@@ -1426,7 +1426,7 @@ yyreduce:
     { 
              (yyval.simple_cmd) = simple_command_new((yyvsp[-1].tokseq).len, (yyvsp[-1].tokseq).str, (yyvsp[0].list), 0); 
              }
-#line 1430 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1430 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 25:
@@ -1434,7 +1434,7 @@ yyreduce:
     { 
              (yyval.simple_cmd) = simple_command_new((yyvsp[-2].tokseq).len, (yyvsp[-2].tokseq).str, (yyvsp[-1].list), 1); 
              }
-#line 1438 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1438 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 26:
@@ -1471,7 +1471,7 @@ yyreduce:
                    //hexDump("HEXDUMP OF ALLOCATE $$", $$.str, 32, 0);
                    //hexDump("HEXDUMP OF ALLOCATE STRING", $$.str[0], strlen($$.str[0]) , 0);
                    }
-#line 1475 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1475 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 27:
@@ -1538,13 +1538,13 @@ yyreduce:
                    //hexDump("HEXDUMP OF ALLOCATE STRING", $$.str[$$.len], strlen($$.str[$$.len]), 0);
                    (yyval.tokseq).len++; 
                    }
-#line 1542 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1542 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 28:
 #line 220 "src/tokenparser.y" /* yacc.c:1652  */
     { (yyval.str)=(yyvsp[0].str);}
-#line 1548 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1548 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
   case 29:
@@ -1556,11 +1556,11 @@ yyreduce:
                      */
                     ret=2;
                   }
-#line 1560 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1560 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
     break;
 
 
-#line 1564 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.c" /* yacc.c:1652  */
+#line 1564 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.c" /* yacc.c:1652  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires

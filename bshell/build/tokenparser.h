@@ -34,8 +34,8 @@
 /* Undocumented macros, especially those whose name start with YY_,
    are private implementation details.  Do not rely on them.  */
 
-#ifndef YY_YY_HOME_STUDENT_DESKTOP_BS_HU_BSHELL_BUILD_TOKENPARSER_H_INCLUDED
-# define YY_YY_HOME_STUDENT_DESKTOP_BS_HU_BSHELL_BUILD_TOKENPARSER_H_INCLUDED
+#ifndef YY_YY_HOME_STUDENT_DESKTOP_BS_HU_BSHELL_BSHELL_BUILD_TOKENPARSER_H_INCLUDED
+# define YY_YY_HOME_STUDENT_DESKTOP_BS_HU_BSHELL_BSHELL_BUILD_TOKENPARSER_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -75,7 +75,7 @@ union YYSTYPE
     Redirection *redirection;
     List *list;
 
-#line 79 "/home/student/Desktop/BS/HU/bshell/build/tokenparser.h" /* yacc.c:1921  */
+#line 79 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenparser.h" /* yacc.c:1921  */
 };
 
 typedef union YYSTYPE YYSTYPE;
@@ -88,4 +88,4 @@ extern YYSTYPE yylval;
 
 int yyparse (void);
 
-#endif /* !YY_YY_HOME_STUDENT_DESKTOP_BS_HU_BSHELL_BUILD_TOKENPARSER_H_INCLUDED  */
+#endif /* !YY_YY_HOME_STUDENT_DESKTOP_BS_HU_BSHELL_BSHELL_BUILD_TOKENPARSER_H_INCLUDED  */

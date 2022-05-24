@@ -6,5 +6,5 @@ C_FLAGS =  -Wall -pedantic   -std=gnu11
 
 C_DEFINES = 
 
-C_INCLUDES = -I/home/student/Desktop/BS/HU/bshell/src -I/home/student/Desktop/BS/HU/bshell/build 
+C_INCLUDES = -I/home/student/Desktop/BS/HU/BShell/bshell/src -I/home/student/Desktop/BS/HU/BShell/bshell/build 
 

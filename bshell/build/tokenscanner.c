@@ -1,6 +1,6 @@
-#line 2 "/home/student/Desktop/BS/HU/bshell/build/tokenscanner.c"
+#line 2 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenscanner.c"
 
-#line 4 "/home/student/Desktop/BS/HU/bshell/build/tokenscanner.c"
+#line 4 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenscanner.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -469,11 +469,11 @@ int fileno(FILE *stream);
          result = (c == EOF) ? YY_NULL : (buf[0] = c, 1); \
          }
 
-#line 473 "/home/student/Desktop/BS/HU/bshell/build/tokenscanner.c"
+#line 473 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenscanner.c"
 /* prevent filno warning */
 /* %option never-interactive */
 #define YY_NO_INPUT 1
-#line 477 "/home/student/Desktop/BS/HU/bshell/build/tokenscanner.c"
+#line 477 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenscanner.c"
 
 #define INITIAL 0
 
@@ -691,7 +691,7 @@ YY_DECL
 #line 29 "src/tokenscanner.l"
 
 
-#line 695 "/home/student/Desktop/BS/HU/bshell/build/tokenscanner.c"
+#line 695 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenscanner.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -826,7 +826,7 @@ YY_RULE_SETUP
 #line 76 "src/tokenscanner.l"
 ECHO;
 	YY_BREAK
-#line 830 "/home/student/Desktop/BS/HU/bshell/build/tokenscanner.c"
+#line 830 "/home/student/Desktop/BS/HU/BShell/bshell/build/tokenscanner.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
