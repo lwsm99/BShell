@@ -1,3 +1,3 @@
-/home/student/Desktop/BS/HU/bshell/build/CMakeFiles/rebuild_cache.dir
-/home/student/Desktop/BS/HU/bshell/build/CMakeFiles/shell.dir
-/home/student/Desktop/BS/HU/bshell/build/CMakeFiles/edit_cache.dir
+/home/student/Desktop/BS/HU/BShell/bshell/build/CMakeFiles/rebuild_cache.dir
+/home/student/Desktop/BS/HU/BShell/bshell/build/CMakeFiles/shell.dir
+/home/student/Desktop/BS/HU/BShell/bshell/build/CMakeFiles/edit_cache.dir

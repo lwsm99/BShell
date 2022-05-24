@@ -1,4 +1,4 @@
-# Install script for directory: /home/student/Desktop/BS/HU/bshell
+# Install script for directory: /home/student/Desktop/BS/HU/BShell/bshell
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -45,5 +45,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/student/Desktop/BS/HU/bshell/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/student/Desktop/BS/HU/BShell/bshell/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
