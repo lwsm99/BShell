@@ -256,7 +256,17 @@ int check_background_execution(Command * cmd){
         background = ((SimpleCommand*) lst->head)->background;
         break;
     case C_OR:
+        lst = cmd->command_sequence->command_list;
+        while (lst !=NULL){
+            background = ((SimpleCommand*) lst->head)->background;
+            lst=lst->tail;
+        }
     case C_AND:
+        lst = cmd->command_sequence->command_list;
+        while (lst !=NULL){
+            background = ((SimpleCommand*) lst->head)->background;
+            lst=lst->tail;
+        }
     case C_PIPE:
     case C_SEQUENCE:
         /*
@@ -293,7 +303,20 @@ int execute(Command * cmd){
         break;
 
     case C_OR:
+        lst = cmd->command_sequence->command_list;
+        do {
+            res=do_execute_simple((SimpleCommand*) lst->head, execute_in_background);
+            lst=lst->tail;
+        }
+        while (lst != NULL && exit_status != 0);
+        break;
     case C_AND:
+        lst = cmd->command_sequence->command_list;
+        while (lst != NULL && exit_status == 0) {
+            res=do_execute_simple((SimpleCommand*) lst->head, execute_in_background);
+            lst=lst->tail;
+        }
+        break;
     case C_SEQUENCE: 
         lst = cmd->command_sequence->command_list;
         while (lst != NULL) {
