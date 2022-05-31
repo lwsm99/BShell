@@ -23,6 +23,7 @@
 
 extern int shell_pid;
 extern int fdtty;
+int exit_status;
 
 /* do not modify this */
 #ifndef NOLIBREADLINE
@@ -177,8 +178,18 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
              * Hier werden Exitcodes empfangen (z.B. WIFEXITED etc.) -> Referenz in Vorlesung!
              * Diese brauchen wir für || und &&
              */
-
-            wpid= waitpid(pid, NULL, 0);
+            
+            int status;
+            wpid= waitpid(pid, &status, 0);
+            if(WIFEXITED(status)) {
+                exit_status = WEXITSTATUS(status);
+            }
+            else if(WIFSIGNALED(status)) {
+                exit_status = WTERMSIG(status);
+            }
+            else {
+                /* Irgendwas anderes ist mit dem child passiert */
+            }
 
             //^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -283,22 +294,12 @@ int execute(Command * cmd){
 
     case C_OR:
     case C_AND:
-    case C_SEQUENCE:
-        printf("[%s] AND, OR and SEQUENCES  are not yet implemented ... do it ... \n", __func__);
-        /** Iteration through the command list!
-         * lst = cmd->command_sequence->command_list;
-         * while (lst !=NULL){
-         *
-         *    ^^
-         *    ||
-         *    || code is missing here
-         *    ||
-         *    vv
-         *    
-         *    lst=lst->tail;
-         *
-         * }
-         */
+    case C_SEQUENCE: 
+        lst = cmd->command_sequence->command_list;
+        while (lst != NULL) {
+            res=do_execute_simple((SimpleCommand*) lst->head, execute_in_background);
+            lst=lst->tail;
+        }
         break;
     case C_PIPE:
         printf("[%s] PIPES are not yet implemented ... do it ... \n", __func__);
