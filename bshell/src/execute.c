@@ -271,6 +271,11 @@ int check_background_execution(Command * cmd){
             lst=lst->tail;
         }
     case C_PIPE:
+        lst = cmd->command_sequence->command_list;
+        while (lst !=NULL){
+            background = ((SimpleCommand*) lst->head)->background;
+            lst=lst->tail;
+        }
     case C_SEQUENCE:
         /*
          * last command in sequence defines whether background or
@@ -305,6 +310,8 @@ void execute_pipe(List *list, int length) {
 
         pidFirst = fork();
         if(pidFirst == 0) {
+            signal(SIGINT, SIG_DFL);
+            signal(SIGTTOU, SIG_DFL);
             //do first
             dup2(pip[first][WRITE], STDOUT_FILENO);
             for(int i = 0; i < length - 1; i++) {
@@ -320,6 +327,8 @@ void execute_pipe(List *list, int length) {
             loop += 1;
             pidLoop = fork();
             if(pidLoop == 0) {
+                signal(SIGINT, SIG_DFL);
+                signal(SIGTTOU, SIG_DFL);
                 dup2(pip[loop - 1][READ], STDIN_FILENO);
                 dup2(pip[loop][WRITE], STDOUT_FILENO);
                 for(int i = 0; i < length - 1; i++) {
@@ -334,6 +343,8 @@ void execute_pipe(List *list, int length) {
         item = lst->head;
         pidLast = fork();
         if(pidLast == 0) {
+            signal(SIGINT, SIG_DFL);
+            signal(SIGTTOU, SIG_DFL);
             //do last
             dup2(pip[last][READ], STDIN_FILENO);
             for(int i = 0; i < length - 1; i++) {
