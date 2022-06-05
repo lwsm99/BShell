@@ -120,14 +120,14 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
                     if(redirection->r_type == R_FILE) {
                         if(redirection->r_mode == M_WRITE) {
                             if((fd = open(redirection->u.r_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IXUSR)) == -1) {
-                                fprintf(stderr, "-bshell: Fehler beim öffnen der Datei: %s \n", redirection->u.r_file);
+                                fprintf(stderr, "%s: ", redirection->u.r_file);
                                 perror("");
                                 exit(EXIT_FAILURE);
                             }
                         }
                         else {
                             if((fd = open(redirection->u.r_file, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR | S_IXUSR)) == -1) {
-                                fprintf(stderr, "-bshell: Fehler beim öffnen der Datei: %s \n", redirection->u.r_file);
+                                fprintf(stderr, "%s: ", redirection->u.r_file);
                                 perror("");
                                 exit(EXIT_FAILURE);
                             }
@@ -143,7 +143,7 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
                     
                     if(redirection->r_type == R_FILE) {
                         if ((fd = open(redirection->u.r_file, O_RDWR, S_IRUSR | S_IWUSR | S_IXUSR)) == -1) {
-                            fprintf(stderr, "-bshell: Fehler beim öffnen der Datei: %s \n", redirection->u.r_file);
+                            fprintf(stderr, "%s: ", redirection->u.r_file);
                             perror("");
                             exit(EXIT_FAILURE);
                         }
@@ -310,8 +310,6 @@ void execute_pipe(List *list, int length) {
 
         pidFirst = fork();
         if(pidFirst == 0) {
-            signal(SIGINT, SIG_DFL);
-            signal(SIGTTOU, SIG_DFL);
             //do first
             dup2(pip[first][WRITE], STDOUT_FILENO);
             for(int i = 0; i < length - 1; i++) {
@@ -327,8 +325,6 @@ void execute_pipe(List *list, int length) {
             loop += 1;
             pidLoop = fork();
             if(pidLoop == 0) {
-                signal(SIGINT, SIG_DFL);
-                signal(SIGTTOU, SIG_DFL);
                 dup2(pip[loop - 1][READ], STDIN_FILENO);
                 dup2(pip[loop][WRITE], STDOUT_FILENO);
                 for(int i = 0; i < length - 1; i++) {
@@ -343,8 +339,6 @@ void execute_pipe(List *list, int length) {
         item = lst->head;
         pidLast = fork();
         if(pidLast == 0) {
-            signal(SIGINT, SIG_DFL);
-            signal(SIGTTOU, SIG_DFL);
             //do last
             dup2(pip[last][READ], STDIN_FILENO);
             for(int i = 0; i < length - 1; i++) {
