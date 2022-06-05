@@ -1,3 +1,0 @@
-# Hashes of file build rules.
-1196fb94647f84116832c7e6433d8b2d tokenparser.c
-53f90dde7674855faedcae277183ff85 tokenscanner.c
