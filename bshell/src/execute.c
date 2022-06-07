@@ -300,10 +300,8 @@ static int execute_pipe(List *list, int length) {
     int pipe_length = length - 1;
     int pip[pipe_length][2], first = 0, last = pipe_length - 1;
     pid_t pidFirst, pidLoop, pidLast;
-    printf("pipe_length = %d\n", last);
 
     for(int i = 0; i < pipe_length; i++) {
-        printf("Piped pip[%d]\n", i);
         if(pipe2(pip[i], O_CLOEXEC) == -1) {
             fprintf(stderr, "Error when piping: pipe[%d] failed!\n", i);
             exit(1);
