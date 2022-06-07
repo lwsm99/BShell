@@ -294,14 +294,14 @@ int check_background_execution(Command * cmd){
     return background;
 }
 
-
 static int execute_pipe(List *list, int length) {
     List *lst = list;
     SimpleCommand *item = list->head;
-    int pip[length][2], first = 0, loop = 0, last = length - 2;
+    int pipe_length = length -1;
+    int pip[pipe_length][2], first = 0, loop = 0, last = pipe_length - 1;
     pid_t pidFirst, pidLoop, pidLast;
 
-    for(int i = 0; i < length - 1; i++) {
+    for(int i = 0; i < pipe_length; i++) {
         if(pipe(pip[i]) == -1) {
             fprintf(stderr, "Error when piping: pipe[%d] failed!\n", i);
             exit(1);
@@ -314,7 +314,7 @@ static int execute_pipe(List *list, int length) {
         signal(SIGTTOU, SIG_DFL);
         //do first
         dup2(pip[first][WRITE], STDOUT_FILENO);
-        for(int i = 0; i < length - 1; i++) {
+        for(int i = 0; i < pipe_length; i++) {
             close(pip[i][READ]);
             close(pip[i][WRITE]);
         }
@@ -331,7 +331,7 @@ static int execute_pipe(List *list, int length) {
             signal(SIGTTOU, SIG_DFL);
             dup2(pip[loop - 1][READ], STDIN_FILENO);
             dup2(pip[loop][WRITE], STDOUT_FILENO);
-            for(int i = 0; i < length - 1; i++) {
+            for(int i = 0; i < pipe_length; i++) {
                 close(pip[i][READ]);
                 close(pip[i][WRITE]);
             }
@@ -347,7 +347,7 @@ static int execute_pipe(List *list, int length) {
         signal(SIGTTOU, SIG_DFL);
         //do last
         dup2(pip[last][READ], STDIN_FILENO);
-        for(int i = 0; i < length - 1; i++) {
+        for(int i = 0; i < pipe_length; i++) {
             close(pip[i][READ]);
             close(pip[i][WRITE]);
         }
@@ -358,12 +358,12 @@ static int execute_pipe(List *list, int length) {
     setpgid(pidFirst, pidFirst);
     tcsetpgrp(fdtty, pidFirst);
 
-    for(int i = 0; i < length - 1; i++) {
+    for(int i = 0; i < pipe_length; i++) {
         close(pip[i][READ]);
         close(pip[i][WRITE]);
     }
 
-    for(int i = 0; i < length - 1; i++) {
+    for(int i = 0; i < length; i++) {
 
         int status;
         waitpid(-1, &status, 0);
