@@ -295,67 +295,92 @@ int check_background_execution(Command * cmd){
 }
 
 
-void execute_pipe(List *list, int length) {
-        List *lst = list;
-        SimpleCommand *item = list->head;
-        int pip[length - 1][2], first = 0, loop = 0, last = length - 2;
-        pid_t pidFirst, pidLoop, pidLast;
+static int execute_pipe(List *list, int length) {
+    List *lst = list;
+    SimpleCommand *item = list->head;
+    int pip[length][2], first = 0, loop = 0, last = length - 2;
+    pid_t pidFirst, pidLoop, pidLast;
 
-        for(int i = 0; i < length - 1; i++) {
-            if(pipe(pip[i]) == -1) {
-                fprintf(stderr, "Error when piping: pipe[%d] failed!\n", i);
-                exit(1);
-            }
+    for(int i = 0; i < length - 1; i++) {
+        if(pipe(pip[i]) == -1) {
+            fprintf(stderr, "Error when piping: pipe[%d] failed!\n", i);
+            exit(1);
         }
+    }
 
-        pidFirst = fork();
-        if(pidFirst == 0) {
-            //do first
-            dup2(pip[first][WRITE], STDOUT_FILENO);
-            for(int i = 0; i < length - 1; i++) {
-                close(pip[i][READ]);
-                close(pip[i][WRITE]);
-            }
-            execvp(item->command_tokens[0], item->command_tokens);
-        }
-
-        for(int i = 1; i < length - 1; i++) {
-            lst = lst->tail;
-            item = lst->head;
-            loop += 1;
-            pidLoop = fork();
-            if(pidLoop == 0) {
-                dup2(pip[loop - 1][READ], STDIN_FILENO);
-                dup2(pip[loop][WRITE], STDOUT_FILENO);
-                for(int i = 0; i < length - 1; i++) {
-                    close(pip[i][READ]);
-                    close(pip[i][WRITE]);
-                }
-                execvp(item->command_tokens[0], item->command_tokens);
-            }
-        }
-
-        lst = lst->tail;
-        item = lst->head;
-        pidLast = fork();
-        if(pidLast == 0) {
-            //do last
-            dup2(pip[last][READ], STDIN_FILENO);
-            for(int i = 0; i < length - 1; i++) {
-                close(pip[i][READ]);
-                close(pip[i][WRITE]);
-            }
-            execvp(item->command_tokens[0], item->command_tokens);
-        }
-
+    pidFirst = fork();
+    if(pidFirst == 0) {
+        signal(SIGINT, SIG_DFL);
+        signal(SIGTTOU, SIG_DFL);
+        //do first
+        dup2(pip[first][WRITE], STDOUT_FILENO);
         for(int i = 0; i < length - 1; i++) {
             close(pip[i][READ]);
             close(pip[i][WRITE]);
         }
-        for(int i = 0; i < length - 1; i++) {
-            waitpid(-1, NULL, 0);
+        execvp(item->command_tokens[0], item->command_tokens);
+    }
+
+    for(int i = 1; i < length - 1; i++) {
+        lst = lst->tail;
+        item = lst->head;
+        loop += 1;
+        pidLoop = fork();
+        if(pidLoop == 0) {
+            signal(SIGINT, SIG_DFL);
+            signal(SIGTTOU, SIG_DFL);
+            dup2(pip[loop - 1][READ], STDIN_FILENO);
+            dup2(pip[loop][WRITE], STDOUT_FILENO);
+            for(int i = 0; i < length - 1; i++) {
+                close(pip[i][READ]);
+                close(pip[i][WRITE]);
+            }
+            execvp(item->command_tokens[0], item->command_tokens);
         }
-    
+    }
+
+    lst = lst->tail;
+    item = lst->head;
+    pidLast = fork();
+    if(pidLast == 0) {
+        signal(SIGINT, SIG_DFL);
+        signal(SIGTTOU, SIG_DFL);
+        //do last
+        dup2(pip[last][READ], STDIN_FILENO);
+        for(int i = 0; i < length - 1; i++) {
+            close(pip[i][READ]);
+            close(pip[i][WRITE]);
+        }
+        execvp(item->command_tokens[0], item->command_tokens);
+    }
+
+    // Parent
+    setpgid(pidFirst, pidFirst);
+    tcsetpgrp(fdtty, pidFirst);
+
+    for(int i = 0; i < length - 1; i++) {
+        close(pip[i][READ]);
+        close(pip[i][WRITE]);
+    }
+
+    for(int i = 0; i < length - 1; i++) {
+
+        int status;
+        waitpid(-1, &status, 0);
+        if(WIFEXITED(status)) {
+            exit_status = WEXITSTATUS(status);
+        }
+        else if(WIFSIGNALED(status)) {
+            exit_status = WTERMSIG(status);
+        }
+        else {
+            /* Irgendwas anderes ist mit dem child passiert */
+        }
+
+        tcsetpgrp(fdtty, shell_pid);
+        return 0;
+    }
+    return 0;
 }
 
 
@@ -399,7 +424,7 @@ int execute(Command * cmd){
     case C_PIPE:
         lst = cmd->command_sequence->command_list;
         length = cmd->command_sequence->command_list_len;
-        execute_pipe(lst, length);
+        res = execute_pipe(lst, length);
         break;
     default:
         printf("[%s] unhandled command type [%i]\n", __func__, cmd->command_type);
