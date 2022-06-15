@@ -297,9 +297,8 @@ int check_background_execution(Command * cmd){
 static int execute_pipe(List *list, int length) {
     List *lst = list;
     SimpleCommand *item = list->head;
-    int pipe_length = length - 1;
-    int pip[pipe_length][2], first = 0, last = pipe_length - 1;
-    pid_t pidFirst, pidLoop, pidLast;
+    int pipe_length = length - 1, pip[pipe_length][2];
+    pid_t pids[length];
 
     for(int i = 0; i < pipe_length; i++) {
         if(pipe2(pip[i], O_CLOEXEC) == -1) {
@@ -308,72 +307,34 @@ static int execute_pipe(List *list, int length) {
         }
     }
 
-    pidFirst = fork();
-    if(pidFirst == 0) {
-        setpgid(0, pidFirst);
-        tcsetpgrp(fdtty, getpgid(0));
-        signal(SIGINT, SIG_DFL);
-        signal(SIGTTOU, SIG_DFL);
-        //do first
-        dup2(pip[first][WRITE], STDOUT_FILENO);
-        for(int i = 0; i < pipe_length; i++) {
-            close(pip[i][READ]);
-            close(pip[i][WRITE]);
+    for(int i = 0; i < length; i++) {
+        if(i != 0) {
+            lst = lst->tail;
+            item = lst->head;
         }
-        execvp(item->command_tokens[0], item->command_tokens);
-        fprintf(stderr, "Exec failed!\n");
-        exit(1);
-    }
-
-    
-        setpgid(pidFirst, pidFirst);
-        tcsetpgrp(fdtty, pidFirst);
-
-    for(int i = 1; i < length - 1; i++) {
-        lst = lst->tail;
-        item = lst->head;
-        pidLoop = fork();
-        if(pidLoop == 0) {
-            setpgid(0, pidFirst);
+        pids[i] = fork();
+        if(pids[i] == 0) {
+            setpgid(0, pids[0]);
             tcsetpgrp(fdtty, getpgid(0));
             signal(SIGINT, SIG_DFL);
             signal(SIGTTOU, SIG_DFL);
-            dup2(pip[i - 1][READ], STDIN_FILENO);
-            dup2(pip[i][WRITE], STDOUT_FILENO);
+            if(i != 0) {
+                dup2(pip[i - 1][READ], STDIN_FILENO);
+            }
+            if(i != pipe_length) {
+                dup2(pip[i][WRITE], STDOUT_FILENO);
+            }
             for(int i = 0; i < pipe_length; i++) {
                 close(pip[i][READ]);
                 close(pip[i][WRITE]);
             }
             execvp(item->command_tokens[0], item->command_tokens);
-        fprintf(stderr, "Exec failed!\n");
-        exit(1);
         }
-        setpgid(pidLoop, pidFirst);
-        tcsetpgrp(fdtty, pidFirst);
-    }
-
-    lst = lst->tail;
-    item = lst->head;
-    pidLast = fork();
-    if(pidLast == 0) {
-        setpgid(0, pidFirst);
-        tcsetpgrp(fdtty, getpgid(0));
-        signal(SIGINT, SIG_DFL);
-        signal(SIGTTOU, SIG_DFL);
-        //do last
-        dup2(pip[last][READ], STDIN_FILENO);
-        for(int i = 0; i < pipe_length; i++) {
-            close(pip[i][READ]);
-            close(pip[i][WRITE]);
-        }
-        execvp(item->command_tokens[0], item->command_tokens);
-        fprintf(stderr, "Exec failed!\n");
-        exit(1);
     }
 
     // Parent
-    setpgid(pidLast, pidFirst);
-    tcsetpgrp(fdtty, pidFirst);
+    setpgid(pids[pipe_length], pids[0]);
+    tcsetpgrp(fdtty, pids[0]);
 
     for(int i = 0; i < pipe_length; i++) {
         close(pip[i][READ]);
