@@ -204,7 +204,6 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
     return 0;
 }
 
-
 static int do_execute_simple(SimpleCommand *cmd_s, int background){
     if (cmd_s==NULL){
         return 0;
@@ -229,6 +228,8 @@ static int do_execute_simple(SimpleCommand *cmd_s, int background){
 
 /* do not modify this */
 #ifndef NOLIBREADLINE
+    } else if (strcmp(cmd_s->command_tokens[0],"status")==0) {
+        printf("Status soon");
     } else if (strcmp(cmd_s->command_tokens[0],"hist")==0){
         return builtin_hist(cmd_s->command_tokens);
 #endif /* NOLIBREADLINE */
