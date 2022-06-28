@@ -7,7 +7,7 @@
 #include "debug.h"
 
 
-StatusList * list_append(void * element, StatusList * tail){
+StatusList * statuslist_append(Status element, StatusList * tail){
     /*
      * exchange only the list itself
      *
@@ -18,8 +18,39 @@ StatusList * list_append(void * element, StatusList * tail){
     return lst;
 }
 
-StatusList * list_delete(void * element, StatusList * tail){
-    lst->head=element;
-    lst->tail=tail;
-    return lst;
+void statuslist_delete(StatusList ** head_el, Status key){
+    // Store head node
+    StatusList * temp = *head_el, *prev;
+ 
+    // If head node itself holds the key to be deleted
+    if (temp != NULL && &temp->head == &key) {
+        head_el = temp->tail; // Changed head
+        free(temp); // free old head
+        return;
+    }
+ 
+    // Search for the key to be deleted, keep track of the
+    // previous node as we need to change 'prev->next'
+    while (temp != NULL && &temp->head != &key) {
+        prev = temp;
+        temp = temp->tail;
+    }
+ 
+    // If key was not present in linked list
+    if (temp == NULL)
+        return;
+ 
+    // Unlink the node from linked list
+    prev->tail = temp->tail;
+ 
+    free(temp); // Free memory
+}
+
+void statuslist_print(StatusList * head_el) {
+    StatusList * lst = head_el;
+    printf("PID  PGID STATUS\tPROG");
+    while(lst != NULL) {
+        printf("%d  %d %s\t%s", lst->head.pid, lst->head.pgid, lst->head.status, lst->head.prog);
+        lst = lst->tail;
+    }
 }

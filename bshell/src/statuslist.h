@@ -2,12 +2,19 @@
 
 #define STATUSLIST_H
 
+typedef struct {
+    pid_t pid;
+    pid_t pgid;
+    char * status;
+    char * prog;
+} Status;
+
 typedef struct statuslist {
-    void *head;
+    Status head;
     struct statusList *tail;
 } StatusList;
 
-StatusList * list_append(void * head, StatusList * tail);
-StatusList * list_delete(void * head, StatusList * tail);
+StatusList * statuslist_append(Status head, StatusList * tail);
+void statuslist_delete(StatusList * head_el, Status key));
 
 #endif /* end of include guard: STATUSLIST_H */
