@@ -24,7 +24,7 @@ void statuslist_delete(StatusList ** head_el, Status key){
  
     // If head node itself holds the key to be deleted
     if (temp != NULL && &temp->head == &key) {
-        head_el = temp->tail; // Changed head
+        head_el = &temp->tail; // Changed head
         free(temp); // free old head
         return;
     }

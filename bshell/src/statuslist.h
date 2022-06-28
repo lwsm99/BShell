@@ -11,11 +11,11 @@ typedef struct {
 
 typedef struct statuslist {
     Status head;
-    struct statusList *tail;
+    struct statuslist *tail;
 } StatusList;
 
 StatusList * statuslist_append(Status head, StatusList * tail);
-void statuslist_delete(StatusList * head_el, Status key));
+void statuslist_delete(StatusList ** head_el, Status key);
 void statuslist_print(StatusList * head_el);
 
 #endif /* end of include guard: STATUSLIST_H */
