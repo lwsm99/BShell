@@ -12,9 +12,13 @@ StatusList * statuslist_append(Status element, StatusList * tail){
      * exchange only the list itself
      *
      */
+    printf("%d %d %s %s\n", element.pid, element.pgid, element.status, element.prog);
     StatusList * lst = malloc(sizeof(StatusList));
     lst->head=element;
     lst->tail=tail;
+    // if (lst->head == NULL) {
+    //     printf("Nullajshdkjasd\n");
+    // }
     return lst;
 }
 
@@ -48,9 +52,10 @@ void statuslist_delete(StatusList ** head_el, Status key){
 
 void statuslist_print(StatusList * head_el) {
     StatusList * lst = head_el;
-    printf("PID  PGID STATUS\tPROG");
+    printf("----------\nPID\tPGID\tSTATUS\tPROG\n");
     while(lst != NULL) {
-        printf("%d  %d %s\t%s", lst->head.pid, lst->head.pgid, lst->head.status, lst->head.prog);
+        printf("%d\t%d\t%s\t%s\n", lst->head.pid, lst->head.pgid, lst->head.status, lst->head.prog);
         lst = lst->tail;
     }
+    printf("----------\n");
 }
