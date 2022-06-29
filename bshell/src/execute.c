@@ -104,29 +104,27 @@ void unquote_command(Command *cmd){
     }
 }
 
-static int execute_fork(SimpleCommand *cmd_s, int background){
+static int execute_fork(SimpleCommand *cmd_s, int background) {
     char ** command = cmd_s->command_tokens;
     pid_t pid, wpid;
     int pip[2];
     pipe(pip);
     pid = fork();
-
     if (pid==0) {
+        /* Set status */
         Status sts;
-
         sts.pgid = getpid();
         sts.pid = getpid();
         sts.status = "running";
         sts.prog = "progname";
         //sts.prog = command[0]; bugged for some reason
+        
         /* Send status to parent */
-
         close(pip[0]);
         if (write(pip[1], &sts, sizeof(Status)) == -1) {
             printf("Error when writing!\n");
         }
         close(pip[1]);
-
         /* child */
         signal(SIGINT, SIG_DFL);
         signal(SIGTTOU, SIG_DFL);
@@ -190,9 +188,7 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
 
     } else {
         /* Receive status from child */
-
         Status temp;
-        
         close(pip[1]);
         if (read(pip[0], &temp, sizeof(Status)) == -1) {
             printf("Error when reading!\n");
@@ -364,11 +360,12 @@ static int execute_pipe(List * list, int length) {
 
         if(pids[i] == 0) {
             Status sts;
+            
             sts.pgid = getpgid(getpid());
             sts.pid = getpid();
             sts.status = "running";
             sts.prog = "pipeprog";
-
+            
             setpgid(0, pids[0]);
             tcsetpgrp(fdtty, getpgid(0));
             signal(SIGINT, SIG_DFL);
@@ -413,7 +410,6 @@ static int execute_pipe(List * list, int length) {
     }
 
     for(int i = 0; i < length; i++) {
-
         int status;
         StatusList * lst = statuslist;
         char * status_str = malloc(50);
