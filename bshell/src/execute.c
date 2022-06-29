@@ -18,7 +18,8 @@
 
 #define READ 0
 #define WRITE 1
-StatusList *statuslist;
+StatusList *statusList;
+int t = 0;
 
 /* do not modify this */
 #ifndef NOLIBREADLINE
@@ -102,25 +103,26 @@ void unquote_command(Command *cmd){
     }
 }
 
-static int execute_fork(SimpleCommand *cmd_s, int background){
+static int execute_fork(SimpleCommand *cmd_s, int background) {
     char ** command = cmd_s->command_tokens;
     pid_t pid, wpid;
-    int statusPipe[2];
-    pipe(statusPipe);
+    int pip[2];
+    pipe(pip);
     pid = fork();
-    if (pid==0){
+    if (pid==0) {
+        /* Set status */
         Status sts;
-        sts.pid = getpid();
         sts.pgid = getpid();
+        sts.pid = getpid();
         sts.status = "running";
-        //sts.prog = "progname";
-        sts.prog = command[0];
-        close(statusPipe[0]);
-        if(write(statusPipe[1], &sts, sizeof(Status)) == -1) {
-            printf("Error when writing into statusPipe!\n");
-            exit(EXIT_FAILURE);
+        sts.prog = "progname";
+        //sts.prog = command[0]; bugged for some reason
+        /* Send status to parent */
+        close(pip[0]);
+        if (write(pip[1], &sts, sizeof(Status)) == -1) {
+            printf("Error when writing!\n");
         }
-        close(statusPipe[1]);
+        close(pip[1]);
         /* child */
         signal(SIGINT, SIG_DFL);
         signal(SIGTTOU, SIG_DFL);
@@ -183,16 +185,16 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
         perror("shell");
 
     } else {
-        /*parent*/
+        /* Receive status from child */
         Status temp;
-        close(statusPipe[1]);
-        if(read(statusPipe[0], &temp, sizeof(Status)) == -1) {
-            printf("Error when reading from statusPipe!\n");
-            exit(EXIT_FAILURE);
+        close(pip[1]);
+        if (read(pip[0], &temp, sizeof(Status)) == -1) {
+            printf("Error when reading!\n");
         }
-        close(statusPipe[0]);
-        statuslist = statuslist_append(temp, statuslist);
-        statuslist_print(statuslist);
+        close(pip[0]); 
+        statusList = statuslist_append(temp, statusList);
+            statuslist_print(statusList); //Print, take this out when not needed anymore!
+        /*parent*/
         setpgid(pid, pid);
         if (background == 0) {
             /* wait only if no background process */
@@ -209,14 +211,7 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
             int status;
             wpid= waitpid(pid, &status, 0);
             if(WIFEXITED(status)) {
-                StatusList *templist;
                 exit_status = WEXITSTATUS(status);
-                while(statuslist != NULL) {
-                    if(statuslist->head.pid == pid) {
-                        statuslist->head.status = "exit";
-                        break;
-                    }
-                }
             }
             else if(WIFSIGNALED(status)) {
                 exit_status = WTERMSIG(status);
@@ -231,7 +226,6 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
             return 0;
         }
     }
-
     return 0;
 }
 
@@ -327,15 +321,21 @@ int check_background_execution(Command * cmd){
 }
 
 static int execute_pipe(List *list, int length) {
-    Status sts;
     List *lst = list;
     SimpleCommand *item = list->head;
-    int pipe_length = length - 1, pip[pipe_length][2];
+    int pipe_length = length - 1, pip[pipe_length][2], statusPipe[length][2];
     pid_t pids[length];
 
     for(int i = 0; i < pipe_length; i++) {
         if(pipe2(pip[i], O_CLOEXEC) == -1) {
             fprintf(stderr, "Error when piping: pipe[%d] failed!\n", i);
+            exit(1);
+        }
+    }
+
+    for(int i = 0; i < length; i++) {
+        if(pipe2(statusPipe[i], O_CLOEXEC) == -1) {
+            fprintf(stderr, "Error when piping: statusPipe[%d] failed!\n", i);
             exit(1);
         }
     }
@@ -347,6 +347,11 @@ static int execute_pipe(List *list, int length) {
         }
         pids[i] = fork();
         if(pids[i] == 0) {
+            Status sts;
+            sts.pgid = getpgid(getpid());
+            sts.pid = getpid();
+            sts.status = "running";
+            sts.prog = "pipeprog";
             setpgid(0, pids[0]);
             tcsetpgrp(fdtty, getpgid(0));
             signal(SIGINT, SIG_DFL);
@@ -357,15 +362,22 @@ static int execute_pipe(List *list, int length) {
             if(i != pipe_length) {
                 dup2(pip[i][WRITE], STDOUT_FILENO);
             }
-            for(int i = 0; i < pipe_length; i++) {
-                close(pip[i][READ]);
-                close(pip[i][WRITE]);
+
+            close(statusPipe[i][READ]);
+            write(statusPipe[i][WRITE], &sts, sizeof(Status));
+
+            for(int k = 0; k < pipe_length; k++) {
+                close(pip[k][READ]);
+                close(pip[k][WRITE]);
+                if(k != 1) close(statusPipe[k][READ]);
+                close(statusPipe[k][WRITE]);
             }
             execvp(item->command_tokens[0], item->command_tokens);
         }
     }
 
     // Parent
+
     setpgid(pids[pipe_length], pids[0]);
     tcsetpgrp(fdtty, pids[0]);
 
@@ -375,7 +387,17 @@ static int execute_pipe(List *list, int length) {
     }
 
     for(int i = 0; i < length; i++) {
+        Status temp;
+        close(statusPipe[i][WRITE]);
+        read(statusPipe[i][READ], &temp, sizeof(Status));
+        close(statusPipe[i][READ]);
+        statusList = statuslist_append(temp, statusList);
+        if(i == length - 1) {
+            statuslist_print(statusList); //Print, take this out when not needed anymore!
+        }
+    }
 
+    for(int i = 0; i < length; i++) {
         int status;
         waitpid(-1, &status, 0);
         if(WIFEXITED(status)) {
