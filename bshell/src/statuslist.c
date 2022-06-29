@@ -12,7 +12,6 @@ StatusList * statuslist_append(Status element, StatusList * tail){
      * exchange only the list itself
      *
      */
-    printf("%d %d %s %s\n", element.pid, element.pgid, element.status, element.prog);
     StatusList * lst = malloc(sizeof(StatusList));
     lst->head=element;
     lst->tail=tail;
