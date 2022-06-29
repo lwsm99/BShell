@@ -206,7 +206,7 @@ static int execute_fork(SimpleCommand *cmd_s, int background) {
             
             int status;
             StatusList * lst = statuslist;
-            char status_str[50];
+            char * status_str = malloc(50);
 
             while(statuslist->head.pid != pid) {
                 statuslist = statuslist->tail;
