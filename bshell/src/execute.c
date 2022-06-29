@@ -18,7 +18,6 @@
 
 #define READ 0
 #define WRITE 1
-StatusList *statuslist;
 
 /* do not modify this */
 #ifndef NOLIBREADLINE
@@ -28,6 +27,8 @@ StatusList *statuslist;
 extern int shell_pid;
 extern int fdtty;
 int exit_status;
+
+StatusList *statuslist;
 
 /* do not modify this */
 #ifndef NOLIBREADLINE
@@ -197,36 +198,36 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
         if (background == 0) {
             /* wait only if no background process */
             tcsetpgrp(fdtty, pid);
-
-            /**
-             * the handling here is far more complicated than this!
-             * vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-             * 
-             * Hier werden Exitcodes empfangen (z.B. WIFEXITED etc.) -> Referenz in Vorlesung!
-             * Diese brauchen wir für || und &&
-             */
             
             int status;
+            StatusList * lst = statuslist;
+            char status_str[50];
+
+            while(statuslist->head.pid != pid) {
+                statuslist = statuslist->tail;
+                if(statuslist == NULL) {
+                    fprintf(stderr, "Couldn't find pid in statuslist: %d", pid);
+                    exit(EXIT_FAILURE);
+                }
+            }
+
             wpid= waitpid(pid, &status, 0);
             if(WIFEXITED(status)) {
-                StatusList *templist;
                 exit_status = WEXITSTATUS(status);
-                while(statuslist != NULL) {
-                    if(statuslist->head.pid == pid) {
-                        statuslist->head.status = "exit";
-                        break;
-                    }
-                }
+                snprintf(status_str, 50, "exit(%d)", status);
+                statuslist->head.status = status_str;
             }
             else if(WIFSIGNALED(status)) {
                 exit_status = WTERMSIG(status);
+                snprintf(status_str, 50, "signal(%d)", status);
+                statuslist->head.status = status_str;
             }
             else {
                 /* Irgendwas anderes ist mit dem child passiert */
+                statuslist->head.status = "this shouldn't happen";
             }
 
-            //^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
+            statuslist = lst; // ptr back to head element
             tcsetpgrp(fdtty, shell_pid);
             return 0;
         }
@@ -234,7 +235,6 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
 
     return 0;
 }
-
 
 static int do_execute_simple(SimpleCommand *cmd_s, int background){
     if (cmd_s==NULL){
@@ -377,22 +377,39 @@ static int execute_pipe(List *list, int length) {
     for(int i = 0; i < length; i++) {
 
         int status;
+        StatusList * lst = statuslist;
+        char * status_str = malloc(50);
+
+        while(statuslist->head.pid != pids[i]) {
+            statuslist = statuslist->tail;
+            if(statuslist == NULL) {
+                fprintf(stderr, "Couldn't find pid in statuslist: %d", pids[i]);
+                exit(EXIT_FAILURE);
+            }
+        }
+
         waitpid(-1, &status, 0);
         if(WIFEXITED(status)) {
             exit_status = WEXITSTATUS(status);
+            snprintf(status_str, 50, "exit(%d)", status);
+            statuslist->head.status = status_str;
         }
         else if(WIFSIGNALED(status)) {
             exit_status = WTERMSIG(status);
+            snprintf(status_str, 50, "signal(%d)", status);
+            statuslist->head.status = status_str;
         }
         else {
             /* Irgendwas anderes ist mit dem child passiert */
+            statuslist->head.status = "this shouldn't happen";
         }
+
+        statuslist = lst; // ptr back to head element
 
     }
     tcsetpgrp(fdtty, shell_pid);
     return 0;
 }
-
 
 int execute(Command * cmd){
     unquote_command(cmd);
