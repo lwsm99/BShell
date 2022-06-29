@@ -18,6 +18,7 @@
 
 #define READ 0
 #define WRITE 1
+StatusList *statuslist;
 
 /* do not modify this */
 #ifndef NOLIBREADLINE
@@ -104,8 +105,22 @@ void unquote_command(Command *cmd){
 static int execute_fork(SimpleCommand *cmd_s, int background){
     char ** command = cmd_s->command_tokens;
     pid_t pid, wpid;
+    int statusPipe[2];
+    pipe(statusPipe);
     pid = fork();
     if (pid==0){
+        Status sts;
+        sts.pid = getpid();
+        sts.pgid = getpid();
+        sts.status = "running";
+        //sts.prog = "progname";
+        sts.prog = command[0];
+        close(statusPipe[0]);
+        if(write(statusPipe[1], &sts, sizeof(Status)) == -1) {
+            printf("Error when writing into statusPipe!\n");
+            exit(EXIT_FAILURE);
+        }
+        close(statusPipe[1]);
         /* child */
         signal(SIGINT, SIG_DFL);
         signal(SIGTTOU, SIG_DFL);
@@ -169,6 +184,15 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
 
     } else {
         /*parent*/
+        Status temp;
+        close(statusPipe[1]);
+        if(read(statusPipe[0], &temp, sizeof(Status)) == -1) {
+            printf("Error when reading from statusPipe!\n");
+            exit(EXIT_FAILURE);
+        }
+        close(statusPipe[0]);
+        statuslist = statuslist_append(temp, statuslist);
+        statuslist_print(statuslist);
         setpgid(pid, pid);
         if (background == 0) {
             /* wait only if no background process */
@@ -185,7 +209,14 @@ static int execute_fork(SimpleCommand *cmd_s, int background){
             int status;
             wpid= waitpid(pid, &status, 0);
             if(WIFEXITED(status)) {
+                StatusList *templist;
                 exit_status = WEXITSTATUS(status);
+                while(statuslist != NULL) {
+                    if(statuslist->head.pid == pid) {
+                        statuslist->head.status = "exit";
+                        break;
+                    }
+                }
             }
             else if(WIFSIGNALED(status)) {
                 exit_status = WTERMSIG(status);
@@ -212,7 +243,6 @@ static int do_execute_simple(SimpleCommand *cmd_s, int background){
     if (strcmp(cmd_s->command_tokens[0],"exit")==0) {
         exit(0);
     } else if (strcmp(cmd_s->command_tokens[0],"cd")==0) {
-
         if(cmd_s->command_token_counter == 1) {
             chdir(getenv("HOME"));
             return 0;
@@ -226,7 +256,9 @@ static int do_execute_simple(SimpleCommand *cmd_s, int background){
             chdir(cmd_s->command_tokens[1]);
             return 0;
         }
-
+    } else if (strcmp(cmd_s->command_tokens[0],"status")==0) {
+        printf("Status cool");
+        return 0;
 /* do not modify this */
 #ifndef NOLIBREADLINE
     } else if (strcmp(cmd_s->command_tokens[0],"hist")==0){
@@ -295,6 +327,7 @@ int check_background_execution(Command * cmd){
 }
 
 static int execute_pipe(List *list, int length) {
+    Status sts;
     List *lst = list;
     SimpleCommand *item = list->head;
     int pipe_length = length - 1, pip[pipe_length][2];
@@ -409,4 +442,3 @@ int execute(Command * cmd){
     }
     return res;
 }
-
