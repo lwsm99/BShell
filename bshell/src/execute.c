@@ -116,8 +116,9 @@ static int execute_fork(SimpleCommand *cmd_s, int background) {
         sts.pgid = getpid();
         sts.pid = getpid();
         sts.status = "running";
-        sts.prog = "progname";
-        //sts.prog = command[0]; bugged for some reason
+        //sts.prog = "progname";
+        //printf("command[0] = [%s]\n", command[0]);
+        sts.prog = command[0];
         
         /* Send status to parent */
         close(pip[0]);
@@ -261,7 +262,8 @@ static int do_execute_simple(SimpleCommand *cmd_s, int background){
             return 0;
         }
     } else if (strcmp(cmd_s->command_tokens[0],"status")==0) {
-        printf("Status cool");
+        //printf("Status cool\n");
+        statuslist_print(statuslist);
         return 0;
 /* do not modify this */
 #ifndef NOLIBREADLINE

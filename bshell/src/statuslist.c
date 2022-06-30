@@ -14,10 +14,8 @@ StatusList * statuslist_append(Status element, StatusList * tail){
      */
     StatusList * lst = malloc(sizeof(StatusList));
     lst->head=element;
+    lst->head.prog = strdup(element.prog);
     lst->tail=tail;
-    // if (lst->head == NULL) {
-    //     printf("Nullajshdkjasd\n");
-    // }
     return lst;
 }
 
