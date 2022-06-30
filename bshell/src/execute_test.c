@@ -17,6 +17,7 @@
 #include "execute.h"
 #include <sys/wait.h>
 #include <sys/resource.h>
+#include <setjmp.h>
 
 #define READ 0
 #define WRITE 1
@@ -107,26 +108,61 @@ void unquote_command(Command *cmd){
     }
 }
 
+// void handleBackground(int value) {
+//     pid_t pid;
+//     while(1) {
+//         pid = waitpid(-1, NULL, WNOHANG);
+//         if(pid == 0) {
+//             return;
+//         } else if(pid == -1) {
+//             return;
+//         } else {
+//             StatusList *temp = statuslist;
+//             while(statuslist != NULL) {
+//                 if(statuslist->head.pid == pid) {
+//                     statuslist->head.status = "dead";
+//                 }
+//                 statuslist = statuslist->tail;
+//             }
+//             statuslist = temp;
+//         }
+//     }
+// }
+
 void handleBackground(int value) {
-    pid_t pid;
-    while(1) {
-        pid = waitpid(-1, NULL, WNOHANG);
-        if(pid == 0) {
-            return;
-        } else if(pid == -1) {
-            return;
-        } else {
-            StatusList *temp = statuslist;
+    StatusList *temp = statuslist;
+    char * status_str = malloc(50);
+    pid_t kidpid;
+    int status;
+    while((kidpid = waitpid(-1, &status, WNOHANG)) > 0) {
+        if(WIFEXITED(status)) {
+            exit_status = WEXITSTATUS(status);
+            snprintf(status_str, 50, "exit(%d)", status);
             while(statuslist != NULL) {
-                if(statuslist->head.pid == pid) {
-                    statuslist->head.status = "dead";
+                if(statuslist->head.pid == kidpid) {
+                    statuslist->head.status = status_str;
                 }
                 statuslist = statuslist->tail;
             }
-            statuslist = temp;
+        }
+        else if(WIFSIGNALED(status)) {
+            exit_status = WTERMSIG(status);
+            snprintf(status_str, 50, "signal(%d)", status);
+            while(statuslist != NULL) {
+                if(statuslist->head.pid == kidpid) {
+                    statuslist->head.status = status_str;
+                }
+                statuslist = statuslist->tail;
+            }
+        }
+        else {
+            /* Irgendwas anderes ist mit dem child passiert */
+            statuslist->head.status = "this shouldn't happen";
         }
     }
+    statuslist = temp;
 }
+
 
 static int execute_fork(SimpleCommand *cmd_s, int background) {
     char ** command = cmd_s->command_tokens;
@@ -135,7 +171,12 @@ static int execute_fork(SimpleCommand *cmd_s, int background) {
     pipe(pip);
 
     if(background != 0) {
-        signal(SIGCHLD, handleBackground);
+        struct sigaction sa;
+        void handleBackground(int value);
+        sigfillset(&sa.sa_mask);
+        sa.sa_handler = handleBackground;
+        sa.sa_flags = 0;
+        sigaction(SIGCHLD, &sa, NULL);
     }
 
     pid = fork();
@@ -145,8 +186,6 @@ static int execute_fork(SimpleCommand *cmd_s, int background) {
         sts.pgid = getpid();
         sts.pid = getpid();
         sts.status = "running";
-        //sts.prog = "progname";
-        //printf("command[0] = [%s]\n", command[0]);
         sts.prog = command[0];
         
         /* Send status to parent */
@@ -229,6 +268,11 @@ static int execute_fork(SimpleCommand *cmd_s, int background) {
 
         /* parent */
         setpgid(pid, pid);
+
+        if (background != 0) {
+            tcsetpgrp(fdtty, pid);
+            tcsetpgrp(fdtty, shell_pid);
+        }
 
         if (background == 0) {
             /* wait only if no background process */
