@@ -15,6 +15,8 @@
 #include "statuslist.h"
 #include "debug.h"
 #include "execute.h"
+#include <sys/wait.h>
+#include <sys/resource.h>
 
 #define READ 0
 #define WRITE 1
@@ -29,7 +31,8 @@ extern int fdtty;
 int exit_status;
 
 StatusList *statuslist;
-int t = 0;
+pid_t signalPid = 0;
+int sig = 0;
 
 /* do not modify this */
 #ifndef NOLIBREADLINE
@@ -104,11 +107,37 @@ void unquote_command(Command *cmd){
     }
 }
 
+// void handleBackground(int value) {
+//     pid_t pid;
+//     while(1) {
+//         pid = waitpid(-1, NULL, WNOHANG);
+//         if(pid == 0) {
+//             return;
+//         } else if(pid == -1) {
+//             return;
+//         } else {
+//             StatusList *temp = statuslist;
+//             while(statuslist != NULL) {
+//                 if(statuslist->head.pid == pid) {
+//                     statuslist->head.status = "dead";
+//                 }
+//                 statuslist = statuslist->tail;
+//             }
+//             statuslist = temp;
+//         }
+//     }
+// }
+
 static int execute_fork(SimpleCommand *cmd_s, int background) {
     char ** command = cmd_s->command_tokens;
     pid_t pid, wpid;
     int pip[2];
     pipe(pip);
+
+    // if(background != 0) {
+    //     signal(SIGCHLD, handleBackground);
+    // }
+
     pid = fork();
     if (pid==0) {
         /* Set status */
@@ -197,10 +226,10 @@ static int execute_fork(SimpleCommand *cmd_s, int background) {
 
         close(pip[0]); 
         statuslist = statuslist_append(temp, statuslist);
-        //statuslist_print(statuslist); //Print, take this out when not needed anymore!
 
         /* parent */
         setpgid(pid, pid);
+
         if (background == 0) {
             /* wait only if no background process */
             tcsetpgrp(fdtty, pid);
@@ -270,7 +299,6 @@ static int do_execute_simple(SimpleCommand *cmd_s, int background){
             if(res != 0) {
                 statuslist = statuslist->tail;
             } else {
-                //printf("%s %s\n", statuslist->head.prog, statuslist->head.status);
                 temp = statuslist_append(statuslist->head, temp);
                 statuslist = statuslist->tail;
             }
