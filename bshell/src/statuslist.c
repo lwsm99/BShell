@@ -48,11 +48,19 @@ void statuslist_delete(StatusList ** head_el, Status key){
 }
 
 void statuslist_print(StatusList * head_el) {
+    if(head_el == NULL) {
+        printf("\nPID\tPGID\tSTATUS\tPROG\n");
+        printf(" - \t -- \t ---- \t -- \n");
+        return;
+    }
     StatusList * lst = head_el;
-    printf("----------\nPID\tPGID\tSTATUS\tPROG\n");
+    printf("\nPID\tPGID\tSTATUS\tPROG\n");
     while(lst != NULL) {
         printf("%d\t%d\t%s\t%s\n", lst->head.pid, lst->head.pgid, lst->head.status, lst->head.prog);
         lst = lst->tail;
     }
-    printf("----------\n");
+}
+
+StatusList *statuslist_clean(StatusList *slist) {
+    return slist = slist->tail;
 }

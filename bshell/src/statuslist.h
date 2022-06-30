@@ -17,5 +17,6 @@ typedef struct statuslist {
 StatusList * statuslist_append(Status head, StatusList * tail);
 void statuslist_delete(StatusList ** head_el, Status key);
 void statuslist_print(StatusList * head_el);
+StatusList *statuslist_clean(StatusList *slist);
 
 #endif /* end of include guard: STATUSLIST_H */

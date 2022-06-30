@@ -197,7 +197,7 @@ static int execute_fork(SimpleCommand *cmd_s, int background) {
 
         close(pip[0]); 
         statuslist = statuslist_append(temp, statuslist);
-        statuslist_print(statuslist); //Print, take this out when not needed anymore!
+        //statuslist_print(statuslist); //Print, take this out when not needed anymore!
 
         /* parent */
         setpgid(pid, pid);
@@ -264,6 +264,17 @@ static int do_execute_simple(SimpleCommand *cmd_s, int background){
     } else if (strcmp(cmd_s->command_tokens[0],"status")==0) {
         //printf("Status cool\n");
         statuslist_print(statuslist);
+        StatusList *temp = NULL;
+        while(statuslist != NULL) {
+            if((statuslist->head.status, "running") != 0) {
+                statuslist = statuslist->tail;
+            } else {
+                temp = statuslist_append(statuslist->head, statuslist->tail);
+                statuslist = statuslist->tail;
+            }
+        }
+        statuslist = temp;
+        printf("\n");
         return 0;
 /* do not modify this */
 #ifndef NOLIBREADLINE
@@ -366,7 +377,7 @@ static int execute_pipe(List * list, int length) {
             sts.pgid = getpgid(getpid());
             sts.pid = getpid();
             sts.status = "running";
-            sts.prog = "pipeprog";
+            sts.prog = item->command_tokens[0];
             
             setpgid(0, pids[0]);
             tcsetpgrp(fdtty, getpgid(0));
@@ -407,7 +418,6 @@ static int execute_pipe(List * list, int length) {
         close(statusPipe[i][READ]);
         statuslist = statuslist_append(temp, statuslist);
         if(i == length - 1) {
-            statuslist_print(statuslist); //Print, take this out when not needed anymore!
         }
     }
 
