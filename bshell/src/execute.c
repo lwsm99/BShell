@@ -266,10 +266,12 @@ static int do_execute_simple(SimpleCommand *cmd_s, int background){
         statuslist_print(statuslist);
         StatusList *temp = NULL;
         while(statuslist != NULL) {
-            if((statuslist->head.status, "running") != 0) {
+            int res = strcmp(statuslist->head.status, "running");
+            if(res != 0) {
                 statuslist = statuslist->tail;
             } else {
-                temp = statuslist_append(statuslist->head, statuslist->tail);
+                //printf("%s %s\n", statuslist->head.prog, statuslist->head.status);
+                temp = statuslist_append(statuslist->head, temp);
                 statuslist = statuslist->tail;
             }
         }
