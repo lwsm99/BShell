@@ -107,26 +107,26 @@ void unquote_command(Command *cmd){
     }
 }
 
-// void handleBackground(int value) {
-//     pid_t pid;
-//     while(1) {
-//         pid = waitpid(-1, NULL, WNOHANG);
-//         if(pid == 0) {
-//             return;
-//         } else if(pid == -1) {
-//             return;
-//         } else {
-//             StatusList *temp = statuslist;
-//             while(statuslist != NULL) {
-//                 if(statuslist->head.pid == pid) {
-//                     statuslist->head.status = "dead";
-//                 }
-//                 statuslist = statuslist->tail;
-//             }
-//             statuslist = temp;
-//         }
-//     }
-// }
+void handleBackground(int value) {
+    pid_t pid;
+    while(1) {
+        pid = waitpid(-1, NULL, WNOHANG);
+        if(pid == 0) {
+            return;
+        } else if(pid == -1) {
+            return;
+        } else {
+            StatusList *temp = statuslist;
+            while(statuslist != NULL) {
+                if(statuslist->head.pid == pid) {
+                    statuslist->head.status = "dead";
+                }
+                statuslist = statuslist->tail;
+            }
+            statuslist = temp;
+        }
+    }
+}
 
 static int execute_fork(SimpleCommand *cmd_s, int background) {
     char ** command = cmd_s->command_tokens;
@@ -134,9 +134,9 @@ static int execute_fork(SimpleCommand *cmd_s, int background) {
     int pip[2];
     pipe(pip);
 
-    // if(background != 0) {
-    //     signal(SIGCHLD, handleBackground);
-    // }
+    if(background != 0) {
+        signal(SIGCHLD, handleBackground);
+    }
 
     pid = fork();
     if (pid==0) {
