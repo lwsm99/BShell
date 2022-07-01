@@ -15,6 +15,9 @@
 #include "statuslist.h"
 #include "debug.h"
 #include "execute.h"
+#include <sys/wait.h>
+#include <sys/resource.h>
+#include <setjmp.h>
 
 #define READ 0
 #define WRITE 1
@@ -29,7 +32,8 @@ extern int fdtty;
 int exit_status;
 
 StatusList *statuslist;
-int t = 0;
+pid_t signalPid = 0;
+int sig = 0;
 
 /* do not modify this */
 #ifndef NOLIBREADLINE
@@ -104,11 +108,77 @@ void unquote_command(Command *cmd){
     }
 }
 
+// void handleBackground(int value) {
+//     pid_t pid;
+//     while(1) {
+//         pid = waitpid(-1, NULL, WNOHANG);
+//         if(pid == 0) {
+//             return;
+//         } else if(pid == -1) {
+//             return;
+//         } else {
+//             StatusList *temp = statuslist;
+//             while(statuslist != NULL) {
+//                 if(statuslist->head.pid == pid) {
+//                     statuslist->head.status = "dead";
+//                 }
+//                 statuslist = statuslist->tail;
+//             }
+//             statuslist = temp;
+//         }
+//     }
+// }
+
+void handleBackground(int value) {
+    StatusList *temp = statuslist;
+    char * status_str = malloc(50);
+    pid_t kidpid;
+    int status;
+    while((kidpid = waitpid(-1, &status, WNOHANG)) > 0) {
+        if(WIFEXITED(status)) {
+            exit_status = WEXITSTATUS(status);
+            snprintf(status_str, 50, "exit(%d)", status);
+            while(statuslist != NULL) {
+                if(statuslist->head.pid == kidpid) {
+                    statuslist->head.status = status_str;
+                }
+                statuslist = statuslist->tail;
+            }
+        }
+        else if(WIFSIGNALED(status)) {
+            exit_status = WTERMSIG(status);
+            snprintf(status_str, 50, "signal(%d)", status);
+            while(statuslist != NULL) {
+                if(statuslist->head.pid == kidpid) {
+                    statuslist->head.status = status_str;
+                }
+                statuslist = statuslist->tail;
+            }
+        }
+        else {
+            /* Irgendwas anderes ist mit dem child passiert */
+            statuslist->head.status = "this shouldn't happen";
+        }
+    }
+    statuslist = temp;
+}
+
+
 static int execute_fork(SimpleCommand *cmd_s, int background) {
     char ** command = cmd_s->command_tokens;
     pid_t pid, wpid;
     int pip[2];
     pipe(pip);
+
+    if(background != 0) {
+        struct sigaction sa;
+        void handleBackground(int value);
+        sigfillset(&sa.sa_mask);
+        sa.sa_handler = handleBackground;
+        sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+        sigaction(SIGCHLD, &sa, NULL);
+    }
+
     pid = fork();
     if (pid==0) {
         /* Set status */
@@ -116,8 +186,6 @@ static int execute_fork(SimpleCommand *cmd_s, int background) {
         sts.pgid = getpid();
         sts.pid = getpid();
         sts.status = "running";
-        //sts.prog = "progname";
-        //printf("command[0] = [%s]\n", command[0]);
         sts.prog = command[0];
         
         /* Send status to parent */
@@ -197,10 +265,15 @@ static int execute_fork(SimpleCommand *cmd_s, int background) {
 
         close(pip[0]); 
         statuslist = statuslist_append(temp, statuslist);
-        //statuslist_print(statuslist); //Print, take this out when not needed anymore!
 
         /* parent */
         setpgid(pid, pid);
+
+        if (background != 0) {
+            tcsetpgrp(fdtty, pid);
+            tcsetpgrp(fdtty, shell_pid);
+        }
+
         if (background == 0) {
             /* wait only if no background process */
             tcsetpgrp(fdtty, pid);
@@ -270,7 +343,6 @@ static int do_execute_simple(SimpleCommand *cmd_s, int background){
             if(res != 0) {
                 statuslist = statuslist->tail;
             } else {
-                //printf("%s %s\n", statuslist->head.prog, statuslist->head.status);
                 temp = statuslist_append(statuslist->head, temp);
                 statuslist = statuslist->tail;
             }
@@ -371,6 +443,13 @@ static int execute_pipe(List * list, int length) {
             item = lst->head;
         }
 
+        struct sigaction sa;
+        void handleBackground(int value);
+        sigfillset(&sa.sa_mask);
+        sa.sa_handler = handleBackground;
+        sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+        sigaction(SIGCHLD, &sa, NULL);
+
         pids[i] = fork();
 
         if(pids[i] == 0) {
@@ -381,7 +460,7 @@ static int execute_pipe(List * list, int length) {
             sts.status = "running";
             sts.prog = item->command_tokens[0];
             
-            setpgid(0, pids[0]);
+            setpgid(getpid(), getpgid(getppid()));
             tcsetpgrp(fdtty, getpgid(0));
             signal(SIGINT, SIG_DFL);
             signal(SIGTTOU, SIG_DFL);
