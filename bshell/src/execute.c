@@ -15,9 +15,6 @@
 #include "statuslist.h"
 #include "debug.h"
 #include "execute.h"
-#include <sys/wait.h>
-#include <sys/resource.h>
-#include <setjmp.h>
 
 #define READ 0
 #define WRITE 1
@@ -32,8 +29,7 @@ extern int fdtty;
 int exit_status;
 
 StatusList *statuslist;
-pid_t signalPid = 0;
-int sig = 0;
+int t = 0;
 
 /* do not modify this */
 #ifndef NOLIBREADLINE
@@ -108,27 +104,6 @@ void unquote_command(Command *cmd){
     }
 }
 
-// void handleBackground(int value) {
-//     pid_t pid;
-//     while(1) {
-//         pid = waitpid(-1, NULL, WNOHANG);
-//         if(pid == 0) {
-//             return;
-//         } else if(pid == -1) {
-//             return;
-//         } else {
-//             StatusList *temp = statuslist;
-//             while(statuslist != NULL) {
-//                 if(statuslist->head.pid == pid) {
-//                     statuslist->head.status = "dead";
-//                 }
-//                 statuslist = statuslist->tail;
-//             }
-//             statuslist = temp;
-//         }
-//     }
-// }
-
 void handleBackground(int value) {
     StatusList *temp = statuslist;
     char * status_str = malloc(50);
@@ -162,7 +137,6 @@ void handleBackground(int value) {
     }
     statuslist = temp;
 }
-
 
 static int execute_fork(SimpleCommand *cmd_s, int background) {
     char ** command = cmd_s->command_tokens;
@@ -273,7 +247,7 @@ static int execute_fork(SimpleCommand *cmd_s, int background) {
             tcsetpgrp(fdtty, pid);
             tcsetpgrp(fdtty, shell_pid);
         }
-
+        
         if (background == 0) {
             /* wait only if no background process */
             tcsetpgrp(fdtty, pid);
@@ -343,6 +317,7 @@ static int do_execute_simple(SimpleCommand *cmd_s, int background){
             if(res != 0) {
                 statuslist = statuslist->tail;
             } else {
+                //printf("%s %s\n", statuslist->head.prog, statuslist->head.status);
                 temp = statuslist_append(statuslist->head, temp);
                 statuslist = statuslist->tail;
             }
@@ -443,13 +418,6 @@ static int execute_pipe(List * list, int length) {
             item = lst->head;
         }
 
-        struct sigaction sa;
-        void handleBackground(int value);
-        sigfillset(&sa.sa_mask);
-        sa.sa_handler = handleBackground;
-        sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-        sigaction(SIGCHLD, &sa, NULL);
-
         pids[i] = fork();
 
         if(pids[i] == 0) {
@@ -461,7 +429,7 @@ static int execute_pipe(List * list, int length) {
             sts.prog = item->command_tokens[0];
             
             setpgid(getpid(), getpgid(getppid()));
-            tcsetpgrp(fdtty, getpgid(0));
+            tcsetpgrp(fdtty, getpgrp());
             signal(SIGINT, SIG_DFL);
             signal(SIGTTOU, SIG_DFL);
 
@@ -519,8 +487,11 @@ static int execute_pipe(List * list, int length) {
             exit_status = WEXITSTATUS(status);
             snprintf(status_str, 50, "exit(%d)", status);
             while(statuslist != NULL) {
-                if(statuslist->head.pgid == getpgid(getpid())) {
-                    statuslist->head.status = status_str;
+                int res = strcmp(statuslist->head.status, "running");
+                if(res == 0) {
+                    if(statuslist->head.pgid == getpgid(getpid())) {
+                        statuslist->head.status = status_str;
+                    }
                 }
                 statuslist = statuslist->tail;
             }
@@ -529,8 +500,11 @@ static int execute_pipe(List * list, int length) {
             exit_status = WTERMSIG(status);
             snprintf(status_str, 50, "signal(%d)", status);
             while(statuslist != NULL) {
-                if(statuslist->head.pgid == getpgid(getpid())) {
-                    statuslist->head.status = status_str;
+                int res = strcmp(statuslist->head.status, "running");
+                if(res == 0) {
+                    if(statuslist->head.pgid == getpgid(getpid())) {
+                        statuslist->head.status = status_str;
+                    }
                 }
                 statuslist = statuslist->tail;
             }
