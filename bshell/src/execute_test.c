@@ -15,6 +15,9 @@
 #include "statuslist.h"
 #include "debug.h"
 #include "execute.h"
+#include <sys/wait.h>
+#include <sys/resource.h>
+#include <setjmp.h>
 
 #define READ 0
 #define WRITE 1
@@ -26,9 +29,11 @@
 
 extern int shell_pid;
 extern int fdtty;
+int exit_status;
 
 StatusList *statuslist;
-int t = 0;
+pid_t signalPid = 0;
+int sig = 0;
 
 /* do not modify this */
 #ifndef NOLIBREADLINE
@@ -103,56 +108,93 @@ void unquote_command(Command *cmd){
     }
 }
 
+// void handleBackground(int value) {
+//     pid_t pid;
+//     while(1) {
+//         pid = waitpid(-1, NULL, WNOHANG);
+//         if(pid == 0) {
+//             return;
+//         } else if(pid == -1) {
+//             return;
+//         } else {
+//             StatusList *temp = statuslist;
+//             while(statuslist != NULL) {
+//                 if(statuslist->head.pid == pid) {
+//                     statuslist->head.status = "dead";
+//                 }
+//                 statuslist = statuslist->tail;
+//             }
+//             statuslist = temp;
+//         }
+//     }
+// }
+
 void handleBackground(int value) {
     StatusList *temp = statuslist;
+    char * status_str = malloc(50);
     pid_t kidpid;
     int status;
     while((kidpid = waitpid(-1, &status, WNOHANG)) > 0) {
-        temp = statuslist;
-            while(temp != NULL) {
-                if(temp->head.pid == kidpid) {
-                    temp->head.status = status;
-                    temp->head.running = 0;
-                    break;
+        if(WIFEXITED(status)) {
+            exit_status = WEXITSTATUS(status);
+            snprintf(status_str, 50, "exit(%d)", status);
+            while(statuslist != NULL) {
+                if(statuslist->head.pid == kidpid) {
+                    statuslist->head.status = status_str;
                 }
-                temp = temp->tail;
+                statuslist = statuslist->tail;
             }
-            if(temp == NULL) {
-                temp = statuslist;
-                while(temp != NULL) {
-                    if(temp->head.pid == -1) {
-                        temp->head.status = status;
-                        temp->head.running = 0;
-                        break;
-                    }
-                    temp = temp->tail;
+        }
+        else if(WIFSIGNALED(status)) {
+            exit_status = WTERMSIG(status);
+            snprintf(status_str, 50, "signal(%d)", status);
+            while(statuslist != NULL) {
+                if(statuslist->head.pid == kidpid) {
+                    statuslist->head.status = status_str;
                 }
+                statuslist = statuslist->tail;
             }
+        }
+        else {
+            /* Irgendwas anderes ist mit dem child passiert */
+            statuslist->head.status = "this shouldn't happen";
+        }
     }
+    statuslist = temp;
 }
+
 
 static int execute_fork(SimpleCommand *cmd_s, int background) {
     char ** command = cmd_s->command_tokens;
     pid_t pid, wpid;
+    int pip[2];
+    pipe(pip);
 
     if(background != 0) {
         struct sigaction sa;
         void handleBackground(int value);
         sigfillset(&sa.sa_mask);
         sa.sa_handler = handleBackground;
-        sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+        sa.sa_flags = 0;
         sigaction(SIGCHLD, &sa, NULL);
     }
-    Status temp;
-    temp.pgid = -1;
-    temp.pid = -1;
-    temp.running = 1;
-    temp.prog = command[0];
-    statuslist = statuslist_append(temp, statuslist);
+
     pid = fork();
     if (pid==0) {
+        /* Set status */
+        Status sts;
+        sts.pgid = getpid();
+        sts.pid = getpid();
+        sts.status = "running";
+        sts.prog = command[0];
+        
+        /* Send status to parent */
+        close(pip[0]);
+        if (write(pip[1], &sts, sizeof(Status)) == -1) {
+            printf("Error when writing!\n");
+        }
+        close(pip[1]);
         /* child */
-        setpgid(0, 0);
         signal(SIGINT, SIG_DFL);
         signal(SIGTTOU, SIG_DFL);
         /* REDIRECTIONS */
@@ -214,9 +256,16 @@ static int execute_fork(SimpleCommand *cmd_s, int background) {
         perror("shell");
 
     } else {
-        /* list_append erzeugt neue statuslist und der knoten liegt direkt in dieser variable und weil nichts parallel das ändert ist das ok */
-        statuslist->head.pid = pid;
-        statuslist->head.pgid = pid;
+        /* Receive status from child */
+        Status temp;
+        close(pip[1]);
+        if (read(pip[0], &temp, sizeof(Status)) == -1) {
+            printf("Error when reading!\n");
+        }
+
+        close(pip[0]); 
+        statuslist = statuslist_append(temp, statuslist);
+
         /* parent */
         setpgid(pid, pid);
 
@@ -224,12 +273,14 @@ static int execute_fork(SimpleCommand *cmd_s, int background) {
             tcsetpgrp(fdtty, pid);
             tcsetpgrp(fdtty, shell_pid);
         }
-        
+
         if (background == 0) {
             /* wait only if no background process */
             tcsetpgrp(fdtty, pid);
             
             int status;
+            StatusList * lst = statuslist;
+            char * status_str = malloc(50);
 
             while(statuslist->head.pid != pid) {
                 statuslist = statuslist->tail;
@@ -238,17 +289,26 @@ static int execute_fork(SimpleCommand *cmd_s, int background) {
                     exit(EXIT_FAILURE);
                 }
             }
-            wpid = waitpid(pid, &status, 0);
-            if(wpid > 0) {
-                statuslist->head.running = 0;
-                statuslist->head.status = status;
-                   
+
+            wpid= waitpid(pid, &status, 0);
+            if(WIFEXITED(status)) {
+                exit_status = WEXITSTATUS(status);
+                snprintf(status_str, 50, "exit(%d)", status);
+                statuslist->head.status = status_str;
             }
+            else if(WIFSIGNALED(status)) {
+                exit_status = WTERMSIG(status);
+                snprintf(status_str, 50, "signal(%d)", status);
+                statuslist->head.status = status_str;
+            }
+            else {
+                /* Irgendwas anderes ist mit dem child passiert */
+                statuslist->head.status = "this shouldn't happen";
+            }
+
+            statuslist = lst; // ptr back to head element
             tcsetpgrp(fdtty, shell_pid);
-            if(WIFEXITED(statuslist->head.status)) {
-                return WEXITSTATUS(statuslist->head.status);
-            }
-            return 1;
+            return 0;
         }
     }
     return 0;
@@ -279,10 +339,10 @@ static int do_execute_simple(SimpleCommand *cmd_s, int background){
         statuslist_print(statuslist);
         StatusList *temp = NULL;
         while(statuslist != NULL) {
-            if(!statuslist->head.running) {
+            int res = strcmp(statuslist->head.status, "running");
+            if(res != 0) {
                 statuslist = statuslist->tail;
             } else {
-                //printf("%s %s\n", statuslist->head.prog, statuslist->head.status);
                 temp = statuslist_append(statuslist->head, temp);
                 statuslist = statuslist->tail;
             }
@@ -360,8 +420,8 @@ int check_background_execution(Command * cmd){
 static int execute_pipe(List * list, int length) {
     List * lst = list;
     SimpleCommand *item = list->head;
-    int pipe_length = length - 1, pip[pipe_length][2];
-    pid_t pids[length], wpid;
+    int pipe_length = length - 1, pip[pipe_length][2], statusPipe[length][2];
+    pid_t pids[length];
 
     for(int i = 0; i < pipe_length; i++) {
         if(pipe2(pip[i], O_CLOEXEC) == -1) {
@@ -371,44 +431,53 @@ static int execute_pipe(List * list, int length) {
     }
 
     for(int i = 0; i < length; i++) {
-        item = lst->head;
+        if(pipe2(statusPipe[i], O_CLOEXEC) == -1) {
+            fprintf(stderr, "Error when piping: statusPipe[%d] failed!\n", i);
+            exit(1);
+        }
+    }
 
-        Status temp;
-        temp.pid = -1;
-        temp.pgid = -1;
-        temp.running = 1;
-        temp.prog = item->command_tokens[0];
-        statuslist = statuslist_append(temp, statuslist);
+    for(int i = 0; i < length; i++) {
+        if(i != 0) {
+            lst = lst->tail;
+            item = lst->head;
+        }
 
         pids[i] = fork();
 
         if(pids[i] == 0) {
+            Status sts;
+            
+            sts.pgid = getpgid(getpid());
+            sts.pid = getpid();
+            sts.status = "running";
+            sts.prog = item->command_tokens[0];
+            
             setpgid(0, pids[0]);
-            tcsetpgrp(fdtty, getpgrp());
+            tcsetpgrp(fdtty, getpgid(0));
             signal(SIGINT, SIG_DFL);
             signal(SIGTTOU, SIG_DFL);
 
             if(i != 0) dup2(pip[i - 1][READ], STDIN_FILENO);
             if(i != pipe_length) dup2(pip[i][WRITE], STDOUT_FILENO);
 
+            close(statusPipe[i][READ]);
+            write(statusPipe[i][WRITE], &sts, sizeof(Status));
+
             for(int k = 0; k < pipe_length; k++) {
                 close(pip[k][READ]);
                 close(pip[k][WRITE]);
+                if(k != 1) close(statusPipe[k][READ]);
+                close(statusPipe[k][WRITE]);
             }
 
             execvp(item->command_tokens[0], item->command_tokens);
-            perror(item->command_tokens[0]);
-            exit(EXIT_FAILURE);
         }
-        setpgid(pids[i], pids[0]);
-        statuslist->head.pid = pids[i];
-        statuslist->head.pgid = pids[0];
-
-        lst = lst->tail;
     }
 
     // Parent
 
+    setpgid(pids[pipe_length], pids[0]);
     tcsetpgrp(fdtty, pids[0]);
 
     for(int i = 0; i < pipe_length; i++) {
@@ -417,22 +486,54 @@ static int execute_pipe(List * list, int length) {
     }
 
     for(int i = 0; i < length; i++) {
+        Status temp;
+        close(statusPipe[i][WRITE]);
+        read(statusPipe[i][READ], &temp, sizeof(Status));
+        close(statusPipe[i][READ]);
+        statuslist = statuslist_append(temp, statuslist);
+    }
+
+    for(int i = 0; i < length; i++) {
         int status;
         StatusList * lst = statuslist;
+        char * status_str = malloc(50);
 
-        while(lst->head.pid != pids[i]) {
-            lst = lst->tail;
-            if(lst == NULL) {
+        while(statuslist->head.pid != pids[i]) {
+            statuslist = statuslist->tail;
+            if(statuslist == NULL) {
                 fprintf(stderr, "Couldn't find pid in statuslist: %d", pids[i]);
                 exit(EXIT_FAILURE);
             }
         }
 
-        wpid = waitpid(pids[i], &status, 0);
-        if(wpid > 0) {
-            lst->head.running = 0;
-            lst->head.status = status;
+        waitpid(-1, &status, 0);
+        
+        if(WIFEXITED(status)) {
+            exit_status = WEXITSTATUS(status);
+            snprintf(status_str, 50, "exit(%d)", status);
+            while(statuslist != NULL) {
+                if(statuslist->head.pgid == getpgid(getpid())) {
+                    statuslist->head.status = status_str;
+                }
+                statuslist = statuslist->tail;
+            }
         }
+        else if(WIFSIGNALED(status)) {
+            exit_status = WTERMSIG(status);
+            snprintf(status_str, 50, "signal(%d)", status);
+            while(statuslist != NULL) {
+                if(statuslist->head.pgid == getpgid(getpid())) {
+                    statuslist->head.status = status_str;
+                }
+                statuslist = statuslist->tail;
+            }
+        }
+        else {
+            /* Irgendwas anderes ist mit dem child passiert */
+            statuslist->head.status = "this shouldn't happen";
+        }
+
+        statuslist = lst; // ptr back to head element
 
     }
     tcsetpgrp(fdtty, shell_pid);
@@ -460,11 +561,11 @@ int execute(Command * cmd){
             res=do_execute_simple((SimpleCommand*) lst->head, execute_in_background);
             lst=lst->tail;
         }
-        while (lst != NULL && res != 0);
+        while (lst != NULL && exit_status != 0);
         break;
     case C_AND:
         lst = cmd->command_sequence->command_list;
-        while (lst != NULL && res == 0) {
+        while (lst != NULL && exit_status == 0) {
             res=do_execute_simple((SimpleCommand*) lst->head, execute_in_background);
             lst=lst->tail;
         }

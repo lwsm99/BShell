@@ -29,7 +29,6 @@
  * Do not worry about it, it works!
  */
 extern Command * cmd;
-extern List *statuslist;
 
 #ifndef NOLIBREADLINE
 extern char *current_readline_prompt;
