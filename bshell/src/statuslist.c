@@ -26,9 +26,22 @@ void statuslist_print(StatusList * head_el) {
         return;
     }
     StatusList * lst = head_el;
-    printf("\n%6s%6s%12s%6s\n", "PID", "PGID", "STATUS", "PROG");
+    printf("\n%6s%6s\t%s\t%6s\n", "PID", "PGID", "STATUS", "PROG");
     while(lst != NULL) {
-        printf("%6d%6d%12s%6s\n", lst->head.pid, lst->head.pgid, lst->head.status, lst->head.prog);
+        if(lst->head.running) {
+            printf("%6d%6d%10s%6s\n", lst->head.pid, lst->head.pgid, "running", lst->head.prog);
+        }
+        else if(WIFEXITED(lst->head.status)) {
+            printf("%6d%6d\texit(%d)%6s\n", lst->head.pid, lst->head.pgid, WEXITSTATUS(lst->head.status), lst->head.prog); 
+        }
+        else if(WIFSIGNALED(lst->head.status)) {
+            printf("%6d%6d\tsignal(%d)%6s\n", lst->head.pid, lst->head.pgid, WTERMSIG(lst->head.status), lst->head.prog); 
+        }
+        else {
+            /* Irgendwas anderes ist mit dem child passiert */
+            lst->head.status = -1;
+            fprintf(stderr, "Unknown exit type in pid [%d] with status %d\n", lst->head.pid, lst->head.status);
+        } 
         lst = lst->tail;
     }
 }

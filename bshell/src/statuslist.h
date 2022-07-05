@@ -5,8 +5,9 @@
 typedef struct {
     pid_t pid;
     pid_t pgid;
-    char * status;
+    int status;
     char * prog;
+    int running;
 } Status;
 
 typedef struct statuslist {
