@@ -23,7 +23,7 @@ create_pagetable();
     return stats;
 }
 
-//translates the logical into physical address
+//translates the logical into physical address.
 int translate_address( int address){
 int page_number = (address & 0x000FF00) >> 8;
 int offset = (address & 0x000000FF);
