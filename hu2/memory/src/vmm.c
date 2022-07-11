@@ -17,9 +17,17 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
     // Initialize statistics
     Statistics stats;
     statistics_initialize(&stats);
-
+    int address;
+     char *line;
+    int len;
+    create_pagetable();
+    /*
+    while(read = getline(&line, &len, fp) != -1){
+      address = atoi(line);
+      get_physical_address(address);
+    */
     // TODO: Implement your solution
-create_pagetable();
+
     return stats;
 }
 
