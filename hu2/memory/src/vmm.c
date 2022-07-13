@@ -76,6 +76,22 @@ void addToTLB(Entry *entry) {
         } else victim_tlb = 0;
     }
 }
+void addToPT(Entry *entry) {
+    //Add first 256 entries to pt
+    if(pt_counter < PT_SIZE) {
+        pt[pt_counter] = entry;
+        pt_counter++;
+    }
+    //After 256 entries we land here
+    else {
+        //Replace the victim in pt with the entry
+        pt[victim_pt] = entry;
+        //Count up the victim until it hits 255, set back to 0 [FIFO]
+        if(victim_pt < PT_SIZE) {
+            victim_pt++;
+        } else victim_pt = 0;
+    }
+}
 
 Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing) {
 
@@ -120,7 +136,7 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
         // Initialize Entry
         Entry * entry = malloc(sizeof(Entry *));
         entry->pn = page_number;
-        //TODO: Set entry-fn
+        //TODO: Set entry->fn
 
         // Check if pagenumber is in TLB
         
@@ -155,7 +171,9 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
                 // Copy Backingstore Data into physical memory
                 //memcpy(phy_mem[entry->fn * F_SIZE], backing + (entry->pn * P_SIZE), P_SIZE);
 
-                //TODO: Add entry or replace victim with entry in tlb and pt
+                /* TODO: Add entry or replace victim with entry in tlb and pt */
+                //addToTLB(entry);
+                //adToPT(entry);
             }
         }
 
