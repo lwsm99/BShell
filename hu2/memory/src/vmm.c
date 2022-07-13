@@ -136,13 +136,14 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
         // Initialize Entry
         Entry * entry = malloc(sizeof(Entry *));
         entry->pn = page_number;
-        //TODO: Set entry->fn
+        entry->fn = -1;
 
         // Check if pagenumber is in TLB
         
         // TLB Hit
         if((entry->fn = check_tlb(entry->pn)) != -1) {
             stats.tlb_hits++;
+            stats.pagetable_hits++;
             tlb_hit = true;
             pt_hit = true;
         }
@@ -159,36 +160,41 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
             // Page Fault 
             else {
 
-                // FIFO for victim page
-                if(victim_page < PT_SIZE) {
-                    entry->pn = victim_page;
-                    victim_page++;
+                char buffer[256];
+                if(fseek(fd_backing, entry->pn * 256, SEEK_SET) != 0) {
+                    printf("Error seeking");
                 }
-                else {
-                    victim_page = 0;
+
+                if(fread(buffer, sizeof(signed char), 256, fd_backing) == 0) {
+                    printf("Error reading");
                 }
 
                 //memcpy(phy_mem[entry->pn * F_SIZE], backing + (entry->pn * P_SIZE), P_SIZE);
 
                 // Copy Backingstore Data into physical memory
                 if(frame_counter < F_COUNT) {
-                    //Add to phy_mem at frame_counter
+                    for(int i = frame_counter * 256, j = 0; i < (frame_counter * 256) + 256; i++, j++) {
+                        phy_mem[i] = buffer[j];
+                    }
+                    entry->fn = frame_counter;
                     frame_counter++;
                 } else {
-                    if(victim_frame >= F_COUNT)victim_frame = 0;
-                    //Replace phy_mem at victim
+                    if(victim_frame >= F_COUNT) victim_frame = 0;
+                    for(int i = victim_frame * 256, j = 0; i < (victim_frame * 256) + 256; i++, j++) {
+                        phy_mem[i] = buffer[j];
+                    }
+                    entry->fn = victim_frame;
                     victim_frame++;
                 }
 
                 /* TODO: Add entry or replace victim with entry in tlb and pt */
-                //addToTLB(entry);
-                //adToPT(entry);
+                addToTLB(entry);
+                addToPT(entry);
             }
         }
 
-        //value = phy_mem[entry->fn * F_SIZE + offset];
-        physical_address = 10;
-        value = (unsigned char)10;
+        physical_address = entry->fn << 8 | offset;
+        value = phy_mem[entry->fn * F_SIZE + offset];
 
         print_access_results(virtual_address, physical_address, value, tlb_hit, pt_hit);
         tlb_hit = pt_hit = false;
