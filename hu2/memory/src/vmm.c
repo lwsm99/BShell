@@ -171,13 +171,10 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
             else {
 
                 char buffer[F_SIZE];
-                if(fseek(fd_backing, entry->pn * F_SIZE, SEEK_SET) != 0) {
-                    printf("Error seeking");
-                }
 
-                if(fread(buffer, sizeof(char), F_SIZE, fd_backing) == 0) {
-                    printf("Error reading");
-                }
+                //set where to read in backing
+                fseek(fd_backing, entry->pn * F_SIZE, SEEK_SET);
+                fread(buffer, sizeof(char), F_SIZE, fd_backing);
 
                 // Copy Backingstore Data into physical memory
                 if(frame_counter < F_COUNT) {
