@@ -19,8 +19,12 @@
 char phy_mem[PHY_MEM_SIZE];
 Entry * tlb[TLB_SIZE];
 Entry * pt[PT_SIZE];
+
+int frame_counter = 0;
 int tlb_counter = 0;
 int pt_counter = 0;
+
+int victim_frame = 0;
 int victim_tlb = 0;
 int victim_pt = 0;
 
@@ -68,12 +72,10 @@ void addToTLB(Entry *entry) {
     }
     //After 16 entries we land here
     else {
+        if(victim_tlb >= TLB_SIZE) victim_tlb = 0;
         //Replace the victim in tlb with the entry
         tlb[victim_tlb] = entry;
-        //Count up the victim until it hits 15, set back to 0 [FIFO]
-        if(victim_tlb < TLB_SIZE) {
-            victim_tlb++;
-        } else victim_tlb = 0;
+        victim_tlb++;
     }
 }
 void addToPT(Entry *entry) {
@@ -84,12 +86,10 @@ void addToPT(Entry *entry) {
     }
     //After 256 entries we land here
     else {
+        if(victim_pt >= PT_SIZE) victim_pt = 0;
         //Replace the victim in pt with the entry
         pt[victim_pt] = entry;
-        //Count up the victim until it hits 255, set back to 0 [FIFO]
-        if(victim_pt < PT_SIZE) {
-            victim_pt++;
-        } else victim_pt = 0;
+        victim_pt++;
     }
 }
 
@@ -168,8 +168,17 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
                     victim_page = 0;
                 }
 
-                // Copy Backingstore Data into physical memory
                 //memcpy(phy_mem[entry->pn * F_SIZE], backing + (entry->pn * P_SIZE), P_SIZE);
+
+                // Copy Backingstore Data into physical memory
+                if(frame_counter < F_COUNT) {
+                    //Add to phy_mem at frame_counter
+                    frame_counter++;
+                } else {
+                    if(victim_frame >= F_COUNT)victim_frame = 0;
+                    //Replace phy_mem at victim
+                    victim_frame++;
+                }
 
                 /* TODO: Add entry or replace victim with entry in tlb and pt */
                 //addToTLB(entry);
@@ -184,6 +193,5 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
         print_access_results(virtual_address, physical_address, value, tlb_hit, pt_hit);
         tlb_hit = pt_hit = false;
     }
-    printf("%d\n", F_SIZE * F_COUNT);
     return stats;
 }
