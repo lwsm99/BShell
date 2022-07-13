@@ -17,6 +17,12 @@
 
 /*** GLOBAL VARIABLES ***/
 char phy_mem[PHY_MEM_SIZE];
+Entry * tlb[TLB_SIZE];
+Entry * pt[PT_SIZE];
+int tlb_counter = 0;
+int pt_counter = 0;
+int victim_tlb = 0;
+int victim_pt = 0;
 
 
 /*** METHODS ***/
@@ -31,6 +37,47 @@ static void statistics_initialize(Statistics *stats) {
     stats->total_memory_accesses = 0;
 }
 
+int check_tlb(int pn) {
+    // TLB Hit:
+    for(int i = 0; i < TLB_SIZE; i++) {
+        if(tlb[i] != NULL && tlb[i]->pn == pn) {
+            return tlb[i]->fn;
+        }
+    }
+    // TLB Miss:
+    return -1;
+}
+
+int check_pt(int pn) {
+    // Pagetable Hit:
+    for(int i = 0; i < PT_SIZE; i++) {
+        if(pt[i] != NULL && pt[i]->pn == pn) {
+            //TODO: Replace victim in tlb
+            return pt[i]->fn;
+        }
+    }
+
+    // Page Fault:
+    return -1;
+}
+
+void addToTLB(Entry *entry) {
+    //Add first 16 entries to tlb
+    if(tlb_counter < TLB_SIZE) {
+        tlb[tlb_counter] = entry;
+        tlb_counter++;
+    }
+    //After 16 entries we land here
+    else {
+        //Replace the victim in tlb with the entry
+        tlb[victim_tlb] = entry;
+        //Count up the victim until it hits 15, set back to 0 [FIFO]
+        if(victim_tlb < TLB_SIZE) {
+            victim_tlb++;
+        } else victim_tlb = 0;
+    }
+}
+
 Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing) {
 
     // Initialize statistics
@@ -40,7 +87,7 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
     // Variables
     int virtual_address;
     int physical_address;
-    char * value;
+    unsigned char value;
     bool tlb_hit = false;
     bool pt_hit = false;
 
@@ -48,38 +95,38 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
     size_t length = 0;
     int read;
 
-    Entry * pt[PT_SIZE];
-    Entry * tlb[TLB_SIZE];
     int victim_page = 0;
 
 
     // Read Backing Store
     char * backing = mmap(0, PT_SIZE * P_SIZE, PROT_READ, MAP_PRIVATE, fd_backing, 0);
-
+    
     // Initialize Page Table & TLB
-    for(int i = 0; i < PT_SIZE; i++) {
-        pt[i] = NULL;
-    }
-
     for(int i = 0; i < TLB_SIZE; i++) {
         tlb[i] = NULL;
+    }
+
+    for(int i = 0; i < PT_SIZE; i++) {
+        pt[i] = NULL;
     }
 
     while ((read = getline(&line, &length, fd_addresses)) != -1) {
         stats.total_memory_accesses++;
 
         // Read Address Input
+        virtual_address = atoi(line);
         int page_number = (atoi(line) & 0x0000FF00) >> 8;
         int offset = (atoi(line) & 0x000000FF);
 
         // Initialize Entry
         Entry * entry = malloc(sizeof(Entry *));
         entry->pn = page_number;
+        //TODO: Set entry-fn
 
         // Check if pagenumber is in TLB
         
         // TLB Hit
-        if((entry->fn = check_tlb) != -1) {
+        if((entry->fn = check_tlb(entry->pn)) != -1) {
             stats.tlb_hits++;
             tlb_hit = true;
             
@@ -89,9 +136,10 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
             // Check if pagenumber is in PT
 
             // Pagetable Hit
-            if((entry->fn = check_pt) != -1) {
+            if((entry->fn = check_pt(entry->pn)) != -1) {
                 stats.pagetable_hits++;
                 pt_hit = true;
+                addToTLB(entry);
             }
             // Page Fault 
             else {
@@ -106,37 +154,19 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
                 }
 
                 // Copy Backingstore Data into physical memory
+                //memcpy(phy_mem[entry->fn * F_SIZE], backing + (entry->pn * P_SIZE), P_SIZE);
 
-                memcpy(phy_mem[entry->fn * F_SIZE], backing + (entry->pn * P_SIZE), P_SIZE);
+                //TODO: Add entry or replace victim with entry in tlb and pt
             }
         }
 
-        value = phy_mem[entry->fn * F_SIZE + offset];
+        //value = phy_mem[entry->fn * F_SIZE + offset];
+        physical_address = 10;
+        value = (unsigned char)10;
 
         print_access_results(virtual_address, physical_address, value, tlb_hit, pt_hit);
+        tlb_hit = pt_hit = false;
     }
-
+    printf("%d\n", F_SIZE * F_COUNT);
     return stats;
-}
-
-int check_tlb(int pn) {
-
-    // TODO: Implement TLB
-
-    // TLB Hit:
-    // return tlb->fn;
-
-    // TLB Miss:
-    return -1;
-}
-
-int check_pt(int pn) {
-
-    // TODO: Implement PT checker
-
-    // Pagetable Hit:
-    // return pt->fn;
-
-    // Page Fault:
-    return -1;
 }
