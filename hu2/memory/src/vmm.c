@@ -79,6 +79,16 @@ void addToTLB(Entry *entry) {
     }
 }
 void addToPT(Entry *entry) {
+    for(int i = 0; i < tlb_counter; i++) {
+        if(tlb[i]->fn == entry->fn) {
+            // 1 2 3 _ 5 6 ... -> 1 2 3 5 6 ...
+            for(int j = i; j < tlb_counter - 1; j++) {
+                tlb[j] = tlb[j + 1];
+            }
+            tlb_counter--;
+            break;
+        }
+    }
     //Add first 256 entries to pt
     if(pt_counter < PT_SIZE) {
         pt[pt_counter] = entry;
@@ -160,36 +170,49 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
             // Page Fault 
             else {
 
-                char buffer[256];
-                if(fseek(fd_backing, entry->pn * 256, SEEK_SET) != 0) {
+                char buffer[F_SIZE];
+                if(fseek(fd_backing, entry->pn * F_SIZE, SEEK_SET) != 0) {
                     printf("Error seeking");
                 }
 
-                if(fread(buffer, sizeof(signed char), 256, fd_backing) == 0) {
+                if(fread(buffer, sizeof(char), F_SIZE, fd_backing) == 0) {
                     printf("Error reading");
                 }
 
-                //memcpy(phy_mem[entry->pn * F_SIZE], backing + (entry->pn * P_SIZE), P_SIZE);
-
                 // Copy Backingstore Data into physical memory
                 if(frame_counter < F_COUNT) {
-                    for(int i = frame_counter * 256, j = 0; i < (frame_counter * 256) + 256; i++, j++) {
+                    for(int i = frame_counter * F_SIZE, j = 0; i < (frame_counter * F_SIZE) + F_SIZE; i++, j++) {
                         phy_mem[i] = buffer[j];
                     }
                     entry->fn = frame_counter;
                     frame_counter++;
                 } else {
                     if(victim_frame >= F_COUNT) victim_frame = 0;
-                    for(int i = victim_frame * 256, j = 0; i < (victim_frame * 256) + 256; i++, j++) {
+                    for(int i = victim_frame * F_SIZE, j = 0; i < (victim_frame * F_SIZE) + F_SIZE; i++, j++) {
                         phy_mem[i] = buffer[j];
                     }
                     entry->fn = victim_frame;
+                    
+                    //remove from pt and tlb when old victim_frame is used
+                    for(int i = 0; i < tlb_counter; i++) {
+                        if(tlb[i]->fn == entry->fn) {
+                            tlb[i]->fn = -1;
+                            tlb[i]->pn = -1;
+                        }
+                    }
+                    for(int i = 0; i < pt_counter; i++) {
+                        if(pt[i]->fn == entry->fn) {
+                            pt[i]->fn = -1;
+                            pt[i]->pn = -1;
+                        }
+                    }
+
                     victim_frame++;
                 }
 
-                /* TODO: Add entry or replace victim with entry in tlb and pt */
-                addToTLB(entry);
+                //Add entry or replace victim with entry in tlb and pt
                 addToPT(entry);
+                addToTLB(entry);
             }
         }
 
@@ -197,6 +220,7 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
         value = phy_mem[entry->fn * F_SIZE + offset];
 
         print_access_results(virtual_address, physical_address, value, tlb_hit, pt_hit);
+        
         tlb_hit = pt_hit = false;
     }
     return stats;
