@@ -144,7 +144,7 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
         if((entry->fn = check_tlb(entry->pn)) != -1) {
             stats.tlb_hits++;
             tlb_hit = true;
-            
+            pt_hit = true;
         }
         // TLB miss
         else {
@@ -169,7 +169,7 @@ Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing
                 }
 
                 // Copy Backingstore Data into physical memory
-                //memcpy(phy_mem[entry->fn * F_SIZE], backing + (entry->pn * P_SIZE), P_SIZE);
+                //memcpy(phy_mem[entry->pn * F_SIZE], backing + (entry->pn * P_SIZE), P_SIZE);
 
                 /* TODO: Add entry or replace victim with entry in tlb and pt */
                 //addToTLB(entry);
