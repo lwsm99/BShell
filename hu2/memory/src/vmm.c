@@ -39,8 +39,8 @@ static void statistics_initialize(Statistics *stats) {
 
 int check_tlb(int pn) {
     // TLB Hit:
-    for(int i = 0; i < TLB_SIZE; i++) {
-        if(tlb[i] != NULL && tlb[i]->pn == pn) {
+    for(int i = 0; i < tlb_counter; i++) {
+        if(tlb[i]->pn == pn) {
             return tlb[i]->fn;
         }
     }
@@ -50,9 +50,8 @@ int check_tlb(int pn) {
 
 int check_pt(int pn) {
     // Pagetable Hit:
-    for(int i = 0; i < PT_SIZE; i++) {
-        if(pt[i] != NULL && pt[i]->pn == pn) {
-            //TODO: Replace victim in tlb
+    for(int i = 0; i < pt_counter; i++) {
+        if(pt[i]->pn == pn) {
             return pt[i]->fn;
         }
     }
