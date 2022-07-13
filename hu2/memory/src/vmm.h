@@ -9,11 +9,6 @@ typedef struct {
     int total_memory_accesses;  // Counts the total number of addresses simulated
 } Statistics;
 
-typedef struct table {
-    void *head;
-    struct table *tail;
-} Table;
-
 typedef struct {
     int pn;   // page number
     int fn;   // frame number
@@ -34,5 +29,7 @@ typedef struct {
  * @return Statistics Some statistics about the simulation
  */
 Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing);
+int check_tlb(int pn);
+int check_pt(int pn);
 
 #endif
