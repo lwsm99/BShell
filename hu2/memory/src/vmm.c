@@ -16,20 +16,37 @@ static void statistics_initialize(Statistics *stats) {
 }
 
 Statistics simulate_virtual_memory_accesses(FILE *fd_addresses, FILE *fd_backing) {
+
     // Initialize statistics
     Statistics stats;
     statistics_initialize(&stats);
-
-    // TODO: Implement your solution
-
+    
+    // Variables
     char *line = NULL;
     size_t length = 0;
     int read;
+    Table * pt;
+    Table * tlb;
 
     while ((read = getline(&line, &length, fd_addresses)) != -1) {
+        // Read Input
         int page_number = (atoi(line) & 0x0000FF00) >> 8;
         int offset = (atoi(line) & 0x000000FF);
+
+        Entry * entry;
+        entry->pn = page_number;
+        entry->fn = page_number;
+        pt = table_append(entry, pt);
     }
 
+
+
     return stats;
+}
+
+Table * table_append(Entry * entry, Table * tail){
+    Table * tbl = malloc(sizeof(Table));
+    tbl->head=entry;
+    tbl->tail=tail;
+    return tbl;
 }

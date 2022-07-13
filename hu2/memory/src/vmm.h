@@ -9,6 +9,21 @@ typedef struct {
     int total_memory_accesses;  // Counts the total number of addresses simulated
 } Statistics;
 
+typedef struct table {
+    void *head;
+    struct table *tail;
+} Table;
+
+typedef struct {
+    int pn;   // page number
+    int fn;   // frame number
+} Entry;
+
+typedef struct {
+    int position;   // page or frame number
+    int offset;   // offset
+} Position;
+
 /**
  * Simulates a series of virtual memory accesses using a TLB and a page table.
  *
